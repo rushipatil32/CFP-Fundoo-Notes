@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Validator;;
+use App\Notifications\PasswordResetRequest;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpFoundation\Response;
+use Mail;
 
 class usercontroller extends Controller
 {
@@ -106,14 +107,69 @@ class usercontroller extends Controller
         return response()->json(['user' => $user]);
     }
 
-    public function fetchdata($firstname){
+    public function forgotPassword(Request $request){
+        $validator = Validator::make($request->all(),[
+            'email' => 'required|string|email|max:100',
+        ]);
 
-        // $validator = Validator::make($request->only('firstname'), [
-        //     'firstname' => 'required'
-        // ]);
-        // if ($validator->fails()) {
-        //     return response()->json(['error' => 'fetching failed'], 200);
-        // }
+        if ($validator->fails()){
+            return response()->json([
+                'Validation_error' => $validator->errors(),
+            ]);
+        }
+        $user = User::where('email', $request->email)->first();
+
+        if(!$user){
+            return response()->json([
+                'status' => 400,
+                'message' => 'We can not find user with that email id'
+            ]);
+        }
+
+        else{
+            $token = JWTAuth::fromUser($user);
+            $data = array('name'=>"Rushikesh Patil", "resetlink"=>$token);
+            // $user->notify((new PasswordResetRequest($user->email, $token)));
+            Mail::send('mail', $data, function($message) {
+                $message->to('rushipatil6632@gmail.com', 'abc')->subject('Reset Password');
+                // $message->attach('$token');
+                $message->from('rushipatil6632@gmail.com','Rushikesh Patil');
+             });
+             return response()->json([
+                'status' => 200,
+                'message' => 'Password Reset link is send to your email'
+             ]);
+        }
+    }
+
+    public function resetPassword(Request $request){
+        $validate = Validator::make($request->all(), [
+            'new_password' => 'min:6|required|',
+            'password_confirmation' => 'required|same:new_password',
+            
+        ]);
+
+        if ($validate->fails()) {
+            return response()->json([
+                'status' => 400 ,
+                'message' => "Password doesn't match"
+            ]);
+        }
+        $user = JWTAuth::authenticate($request->token);
         
+        if(!$user){
+            return response()->json([
+                'status' => 400,
+                'message' => 'we can not find User with such Mail Address',
+            ]);
+        }
+        else{
+            $user->password = bcrypt($request->new_password);
+            $user->save();
+            return response()->json([
+                'status' => 200,
+                'message' => 'Password Reset Successfull'
+            ]);
+        }
     }
 }

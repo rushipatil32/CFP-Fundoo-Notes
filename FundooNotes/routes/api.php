@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\usercontroller;
+// use App\Http\Controllers\SendMailController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -20,10 +22,15 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 Route::post('register',[usercontroller::class,'register']);
 Route::post('login',[usercontroller::class,'login']);
+Route::post('forgotPassword', [usercontroller::class, 'forgotPassword']);
+
 Route::group(['middleware' => ['jwt.verify']], function() {
-    Route::get('logout', [usercontroller::class, 'logout']);
-    Route::get('getuser', [usercontroller::class, 'get_user']);
-Route::post('fetchdata',[usercontroller::class,'fetchdata']);
+Route::get('logout', [usercontroller::class, 'logout']);
+Route::get('get_user', [usercontroller::class, 'get_user']);
+Route::post('resetPassword', [usercontroller::class, 'resetPassword']);
+// Route::post('forgotPassword', [usercontroller::class, 'forgotPassword']);
+
+
 
 });
 
