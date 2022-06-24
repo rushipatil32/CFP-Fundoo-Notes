@@ -37,6 +37,7 @@ return [
 
     'guards' => [
         'web' => [
+            'driver' => 'passport',
             'driver' => 'session',
             'provider' => 'users',
         ],
@@ -98,7 +99,7 @@ return [
             'throttle' => 60,
         ],
     ],
-
+    
     /*
     |--------------------------------------------------------------------------
     | Password Confirmation Timeout
@@ -113,3 +114,4 @@ return [
     'password_timeout' => 10800,
 
 ];
+

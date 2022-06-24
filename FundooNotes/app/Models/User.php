@@ -12,6 +12,8 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 class User extends Authenticatable implements JWTSubject
 {
     use HasApiTokens, HasFactory, Notifiable;
+    use Notifiable, HasApiTokens; 
+
 
     /**
      * The attributes that are mass assignable.
@@ -52,5 +54,33 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+    /**
+     * Mutator for first name attribute
+     * Before saving it to database first letter will be changed to upper case
+     */
+    public function setFirstNameAttribute($value)
+    {
+        $this->attributes['firstname'] = ucfirst($value);
+    }
+
+    /**
+     * Mutator for last name attribute
+     * Before saving it to database first letter will be changed to upper case
+     */
+    public function setLastNameAttribute($value)
+    {
+        $this->attributes['lastname'] = ucfirst($value);
+    }
+
+    /**
+     * Accessor for first name attribute
+     * When user is retrived from database, 
+     * first letter of first name will be upper case and 
+     * Mr/s. will be added while displaying
+     */
+    public function getFirstNameAttribute($value)
+    {
+        return 'Mr/s. ' . ucfirst($value);
     }
 }

@@ -9,6 +9,7 @@ class Mailer
     public function sendEmail($user, $token)
     {
         $subject = 'Forgot Password';
+        
         $data = "Hi, " . $user->first_name . " " . $user->last_name . "<br>Your Password Reset Token:<br>" . $token;
 
         $mail = new PHPMailer(true);

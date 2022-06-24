@@ -13,6 +13,35 @@ use Mail;
 
 class usercontroller extends Controller
 {
+    /**
+     * @OA\Post(
+     *   path="/api/register",
+     *   summary="register",
+     *   description="register the user for login",
+     *   @OA\RequestBody(
+     *         @OA\JsonContent(),
+     *         @OA\MediaType(
+     *            mediaType="multipart/form-data",
+     *            @OA\Schema(
+     *               type="object",
+     *               required={"firstname","lastname","email", "password", "password_confirmation"},
+     *               @OA\Property(property="firstname", type="string"),
+     *               @OA\Property(property="lastname", type="string"),
+     *               @OA\Property(property="email", type="string"),
+     *               @OA\Property(property="password", type="password"),
+     *               @OA\Property(property="password_confirmation", type="password")
+     *            ),
+     *        ),
+     *    ),
+     *   @OA\Response(response=200, description="User successfully registered"),
+     * )
+     * It takes a POST request and required fields for the user to register
+     * and validates them if it validated, creates those field including 
+     * values in DataBase and returns success response
+     *
+     *@return \Illuminate\Http\JsonResponse
+     */
+
     function register(Request $request){
         $validator = Validator::make($request->all(),[
             'firstname' => 'required|string|between:2,100',
@@ -37,6 +66,33 @@ class usercontroller extends Controller
             'user' => $user
         ], 200);
     }
+
+    /**
+     * @OA\Post(
+     *   path="/api/login",
+     *   summary="login",
+     *   description=" login ",
+     *   @OA\RequestBody(
+     *         @OA\JsonContent(),
+     *         @OA\MediaType(
+     *            mediaType="multipart/form-data",
+     *            @OA\Schema(
+     *               type="object",
+     *               required={"email", "password"},
+     *               @OA\Property(property="email", type="string"),
+     *               @OA\Property(property="password", type="password"),
+     *            ),
+     *        ),
+     *    ),
+     * @OA\Response(response=200, description="Login successfull"),
+     * @OA\Response(response=400, description="Login credentials are invalid"),
+     * 
+     * )
+     * Takes the POST request and user credentials checks if it correct,
+     * if so, returns JWT access token.
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
 
     public function login(Request $request)
     {
@@ -71,7 +127,19 @@ class usercontroller extends Controller
         ], 200);
     }
 
-
+     /**
+     * Takes the GET request and JWT access token to logout the user profile
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    /**
+     * @OA\Get(
+     *   path="/api/logout",
+     *   summary="logout",
+     *   description=" logout ",
+     *   @OA\Response(response=200, description="User successfully signed out"),
+     * )
+     */
     public function logout(Request $request)
     {
         $validator = Validator::make($request->only('token'), [
@@ -95,17 +163,75 @@ class usercontroller extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+/**
+     * * @OA\Get(
+     *   path="/api/get_user",
+     *   summary="getuser",
+     *   description="getuser",
+     *   @OA\RequestBody(
+     *    ),
+     *   @OA\Response(response=201, description="Found User successfully"),
+     *   @OA\Response(response=401, description="User cannot be found"),
+     *   security={
+     *       {"Bearer": {}}
+     *     }
+     * )
+     * getuser
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
 
     public function get_user(Request $request)
     {
-        $this->validate($request, [
-            'token' => 'required'
-        ]);
-
         $user = JWTAuth::authenticate($request->token);
 
-        return response()->json(['user' => $user]);
+        if(!$user){
+            return response()-> json([
+                'status'=>401,
+                'message' => 'Invalid token'
+            ]);
+        }
+
+        else{
+        return response()->json([
+            'status'=>201,
+            'firstname' => $user->firstname,
+            'lastname' => $user->lastname,
+            'email' => $user->email,            
+        ]);
+        }
     }
+
+
+         /**
+     *  @OA\Post(
+     *   path="/api/forgotPassword",
+     *   summary="forgot password",
+     *   description="forgot user password",
+     *   @OA\RequestBody(
+     *         @OA\JsonContent(),
+     *         @OA\MediaType(
+     *            mediaType="multipart/form-data",
+     *            @OA\Schema(
+     *               type="object",
+     *               required={"email"},
+     *               @OA\Property(property="email", type="string"),
+     *            ),
+     *        ),
+     *    ),
+     *   @OA\Response(response=200, description="Password Reset link is send to your email"),
+     *   @OA\Response(response=400, description="we can not find a user with that email address"),
+     *   security={
+     *       {"Bearer": {}}
+     *     }
+     * )
+     * This API Takes the request which is the email id and validates it and check where that email id
+     * is present in DataBase or not, if it is not,it returns failure with the appropriate response code and
+     * checks for password reset model once the email is valid and calling the function Mail::Send
+     * by passing args and successfully sending the password reset link to the specified email id.
+     *
+     * @return success reponse about reset link.
+     */
 
     public function forgotPassword(Request $request){
         $validator = Validator::make($request->all(),[
@@ -142,6 +268,35 @@ class usercontroller extends Controller
         }
     }
 
+
+     /**
+     *   @OA\Post(
+     *   path="/api/resetPassword",
+     *   summary="reset password",
+     *   description="reset user password",
+     *   @OA\RequestBody(
+     *         @OA\JsonContent(),
+     *         @OA\MediaType(
+     *            mediaType="multipart/form-data",
+     *            @OA\Schema(
+     *               type="object",
+     *               required={"new_password","password_confirmation"},
+     *               @OA\Property(property="new_password", type="password"),
+     *               @OA\Property(property="password_confirmation", type="password"),
+     *            ),
+     *        ),
+     *    ),
+     *   @OA\Response(response=200, description="Password reset successfull!"),
+     *   @OA\Response(response=400, description="we can't find the user with that e-mail address"),
+     *   security={
+     *       {"Bearer": {}}
+     *     }
+     * )
+     * This API Takes the request which has new password and confirm password and validates both of them
+     * if validation fails returns failure resonse and if it passes it checks with DataBase whether the token
+     * is there or not if not returns a failure response and checks the user email also if everything is
+     * ok it will reset the password successfully.
+     */
     public function resetPassword(Request $request){
         $validate = Validator::make($request->all(), [
             'new_password' => 'min:6|required|',
