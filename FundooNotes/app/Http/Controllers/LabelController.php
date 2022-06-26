@@ -54,6 +54,7 @@ class LabelController extends Controller
         $user_id = $user->id;
 
         if (!$user) {
+            Log::error('Invalid Authorization Token');
             return response()->json([
                 'status' => 401,
                 'message' => 'Invalid Autherization token'
@@ -63,6 +64,7 @@ class LabelController extends Controller
                 'labelname' => $request->labelname,
                 'user_id' => $user_id,
             ]);
+            Log::info('Label successfully created');
             return response()->json([
                 'status' => 200,
                 'message' => 'Label successfully created',
@@ -103,6 +105,7 @@ class LabelController extends Controller
         $user = JWTAuth::authenticate($request->token);
 
         if (!$user) {
+            Log::error('Invalid Authorization Token');
             return response()->json([
                 'status' => 401,
                 'message' => 'Invalid Authorization Token',
@@ -113,11 +116,13 @@ class LabelController extends Controller
         $label = Labels::where('user_id', $id)->where('id', $request->id)->first();
 
         if (!$label) {
+            Log::error('Label Not Found');
             return response()->json([
                 'status' => 404,
                 'message' => 'Label Not Found'
             ]);
         } else {
+            Log::info('Labels Retrieved Successfully.');
             return response()->json([
                 'status' => 200,
                 'label' => $label
@@ -130,9 +135,9 @@ class LabelController extends Controller
      *   summary="Read All Labels",
      *   description="Read Labels",
      *   @OA\RequestBody(),
-     *   @OA\Response(response=201, description="Labels Retrieved Successfully."),
+     *   @OA\Response(response=200, description="Labels Retrieved Successfully."),
      *   @OA\Response(response=401, description="Invalid authorization token"),
-     *   @OA\Response(response=404, description="No label is created by this user"),
+     *   @OA\Response(response=404, description="Label not found"),
      *   security={
      *       {"Bearer": {}}
      *   }
@@ -150,6 +155,7 @@ class LabelController extends Controller
         $label = Labels::all();
 
         if (!$user) {
+            Log::error('Invalid Authorization Token');
             return response()->json([
                 'status' => 401,
                 'message' => 'Invalid Autherization token'
@@ -158,13 +164,15 @@ class LabelController extends Controller
         $label=Labels::where('user_id',$user->id)->get();
 
         if(!$label){    
+            Log::error('Label Not Found');
             return response()->json([
                 'status'=>404,
-                'message'=>'No label is created by this user'
+                'message'=>'Label Not Found'
 
             ]);
         }
         else {
+            Log::info('Label Updated Successfully');
             return response()->json([
                 'status' => 200,
                 'label' => $label
@@ -215,6 +223,7 @@ class LabelController extends Controller
         $user = JWTAuth::authenticate($request->token);
 
         if (!$user) {
+            Log::error('Invalid Authorization Token');
             return response()->json([
                 'status' => 401,
                 'message' => 'Invalid Authorization Token',
@@ -224,10 +233,10 @@ class LabelController extends Controller
         $label = Labels::where('user_id', $user->id)->where('id', $request->id)->first();
 
         if (!$label) {
-
+            Log::error('Label Not Found');
             return response()->json([
                 'status' => 404,
-                'message' => 'Please enter valid id'
+                'message' => 'Label Not Found'
             ]);
         }
 
@@ -236,6 +245,7 @@ class LabelController extends Controller
             'user_id' => $user->id,
         ]);
 
+        Log::info('Label Successfully Updated');
         return response()->json([
             'status' => 200,
             'label' => $label,

@@ -100,6 +100,7 @@ class NoteController extends Controller
         $user = JWTAuth::authenticate($request->token);
 
         if (!$user) {
+            Log::error('Invalid User');
             return response()->json([
                 'status' => 404,
                 'message' => 'Invalid Autherization token'
@@ -230,6 +231,7 @@ class NoteController extends Controller
         $user = JWTAuth::authenticate($request->token);
 
         if (!$user) {
+            Log::channel('customLog')->error('Invalid User');
             return response()->json([
                 'status' => 401,
                 'message' => 'Invalid Authorization Token',
@@ -252,6 +254,7 @@ class NoteController extends Controller
             'user_id' => $user->id,
         ]);
 
+        Log::channel('customLog')->info('Note updated', ['user_id' => $user->id]);
         return response()->json([
             'status' => 400,
             'note' => $note,
@@ -275,7 +278,7 @@ class NoteController extends Controller
      *            ),
      *        ),
      *    ),
-     *   @OA\Response(response=201, description="Enter Valid ID"),
+     *   @OA\Response(response=200, description="Enter Valid ID"),
      *   @OA\Response(response=404, description="Notes Not Found"),
      *   @OA\Response(response=401, description="Invalid Authorization Token"),
      *   security={
@@ -301,6 +304,7 @@ class NoteController extends Controller
         $user = JWTAuth::authenticate($request->token);
 
         if (!$user) {
+            Log::channel('customLog')->error('Invalid User');
             return response()->json([
                 'status' => 401,
                 'message' => 'Invalid Authorization Token',
@@ -310,12 +314,14 @@ class NoteController extends Controller
         $note = Notes::where('id', $request->id)->first();
 
         if (!$note) {
+            Log::channel('customLog')->error('Notes Not Found', ['id' => $request->id]);
             return response()->json([
                 'status' => 404,
-                'mesaage' => 'Enter valid id',
+                'mesaage' => 'Notes not found',
             ]);
         } else {
             $note->delete($note->id);
+            Log::channel('customLog')->info('notes deleted', ['user_id' => $user->id, 'note_id' => $request->id]);
             return response()->json([
                 'status' => 200,
                 'mesaage' => 'Note Successfully deleted',
@@ -491,7 +497,7 @@ class NoteController extends Controller
      *            ),
      *        ),
      *    ),
-     *   @OA\Response(response=201, description="Note Pinned Sucessfully"),
+     *   @OA\Response(response=200, description="Note Pinned Sucessfully"),
      *   @OA\Response(response=404, description="Notes not Found"),
      *   security = {
      * {
@@ -555,7 +561,7 @@ class NoteController extends Controller
      *            ),
      *        ),
      *    ),
-     *   @OA\Response(response=201, description="Note Unpinned Sucessfully"),
+     *   @OA\Response(response=200, description="Note Unpinned Sucessfully"),
      *   @OA\Response(response=404, description="Notes not Found"),
      *   security = {
      * {
@@ -612,7 +618,7 @@ class NoteController extends Controller
      *    ),
      *   @OA\Response(response=404, description="Notes Not Found"),
      *   @OA\Response(response=401, description="Invalid Authorization Token"),
-     *   @OA\Response(response=201, description="Fetched All Pinned Notes Successfully"),
+     *   @OA\Response(response=200, description="Fetched All Pinned Notes Successfully"),
      *   security = {
      *      {"Bearer" : {}}
      *   }
@@ -666,7 +672,7 @@ class NoteController extends Controller
      *            ),
      *        ),
      *    ),
-     *   @OA\Response(response=201, description="Note Archived Sucessfully"),
+     *   @OA\Response(response=200, description="Note Archived Sucessfully"),
      *   @OA\Response(response=404, description="Notes not Found"),
      *   security = {
      * {
@@ -734,7 +740,7 @@ class NoteController extends Controller
      *            ),
      *        ),
      *    ),
-     *   @OA\Response(response=201, description="Note Unarchived Sucessfully"),
+     *   @OA\Response(response=200, description="Note Unarchived Sucessfully"),
      *   @OA\Response(response=404, description="Notes not Found"),
      *   security = {
      * {
@@ -848,7 +854,7 @@ class NoteController extends Controller
      *            ),
      *        ),
      *    ),
-     *   @OA\Response(response=201, description="Note Coloured Sucessfully"),
+     *   @OA\Response(response=200, description="Note Coloured Sucessfully"),
      *   @OA\Response(response=404, description="Notes Not Found"),
      *   @OA\Response(response=406, description="Colour Not Specified in the List"),
      *   security = {
@@ -929,7 +935,7 @@ class NoteController extends Controller
      *   summary="Pagination",
      *   description="Pagination of Notes",
      *   @OA\RequestBody(),
-     *   @OA\Response(response=201, description="Pagination Applied to all Notes")
+     *   @OA\Response(response=200, description="Pagination Applied to all Notes")
      * )
      * 
      * Function to view all notes,

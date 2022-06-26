@@ -26,6 +26,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('register',[usercontroller::class,'register']);
 Route::post('login',[usercontroller::class,'login']);
 Route::post('forgotPassword', [usercontroller::class, 'forgotPassword']);
+Route::get('paginationNote', [NoteController::class, 'paginationNote']);
 
 Route::group(['middleware' => ['jwt.verify']], function() {
 Route::get('logout', [usercontroller::class, 'logout']);
@@ -44,7 +45,6 @@ Route::post('unpinNoteById',[NoteController::class,'unpinNoteById']);
 Route::post('archiveNoteById',[NoteController::class,'archiveNoteById']);
 Route::post('unarchiveNoteById',[NoteController::class,'unarchiveNoteById']);
 Route::post('colourNoteById', [NoteController::class, 'colourNoteById']);
-Route::get('paginationNote', [NoteController::class, 'paginationNote']);
 Route::get('getAllPinnedNotes', [NoteController::class, 'getAllPinnedNotes']);
 Route::get('getAllArchivedNotes', [NoteController::class, 'getAllArchivedNotes']);
 

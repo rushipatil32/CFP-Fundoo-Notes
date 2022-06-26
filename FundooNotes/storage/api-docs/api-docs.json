@@ -801,7 +801,7 @@
         "/api/login": {
             "post": {
                 "summary": "login",
-                "description": " login ",
+                "description": "login",
                 "operationId": "cded9abfda234f85153c9ea3ff95d500",
                 "requestBody": {
                     "content": {
@@ -816,7 +816,7 @@
                                         "type": "string"
                                     },
                                     "password": {
-                                        "type": "password"
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -828,11 +828,11 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Login successfull"
+                    "201": {
+                        "description": "login Success"
                     },
-                    "400": {
-                        "description": "Login credentials are invalid"
+                    "401": {
+                        "description": "we can not find the user with that e-mail address You need to register first"
                     }
                 }
             }

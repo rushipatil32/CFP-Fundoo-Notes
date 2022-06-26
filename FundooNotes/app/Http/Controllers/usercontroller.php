@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;;
-use App\Notifications\PasswordResetRequest;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpFoundation\Response;
@@ -71,7 +72,7 @@ class usercontroller extends Controller
      * @OA\Post(
      *   path="/api/login",
      *   summary="login",
-     *   description=" login ",
+     *   description="login",
      *   @OA\RequestBody(
      *         @OA\JsonContent(),
      *         @OA\MediaType(
@@ -80,32 +81,47 @@ class usercontroller extends Controller
      *               type="object",
      *               required={"email", "password"},
      *               @OA\Property(property="email", type="string"),
-     *               @OA\Property(property="password", type="password"),
+     *               @OA\Property(property="password", type="string"),
      *            ),
      *        ),
      *    ),
-     * @OA\Response(response=200, description="Login successfull"),
-     * @OA\Response(response=400, description="Login credentials are invalid"),
-     * 
+     *   @OA\Response(response=201, description="login Success"),
+     *   @OA\Response(response=401, description="we can not find the user with that e-mail address You need to register first"),
      * )
-     * Takes the POST request and user credentials checks if it correct,
-     * if so, returns JWT access token.
-     * 
+     * login user
+     *
      * @return \Illuminate\Http\JsonResponse
      */
 
     public function login(Request $request)
     {
         $credentials = $request->only('email', 'password');
+
         $validator = Validator::make($credentials, [
             'email' => 'required|email',
             'password' => 'required|string|min:6|max:50'
         ]);
-    
+
         if ($validator->fails()) {
-            return response()->json(['error' => 'fails'], 400);
+            return response()->json(['error' => 'Invalid credentials entered'], 400);
         }
-        
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            Log::error('Not a Registered Email');
+            return response()->json([
+                'message' => 'Email is not registered',
+            ], 402);
+        } elseif (!Hash::check($request->password, $user->password)) {
+            Log::error('Wrong Password');
+            return response()->json([
+                'message' => 'Wrong password'
+            ], 403);
+        }
+
+        //Request is validated
+        //Crean token
         try {
             if (!$token = JWTAuth::attempt($credentials)) {
                 return response()->json([
@@ -120,6 +136,7 @@ class usercontroller extends Controller
                 'message' => 'Could not create token.',
             ], 500);
         }
+        Log::info('Login Successful');
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
@@ -127,45 +144,56 @@ class usercontroller extends Controller
         ], 200);
     }
 
-     /**
-     * Takes the GET request and JWT access token to logout the user profile
-     * 
-     * @return \Illuminate\Http\JsonResponse
-     */
-    /**
-     * @OA\Get(
+         /**
+     * * @OA\Post(
      *   path="/api/logout",
      *   summary="logout",
-     *   description=" logout ",
-     *   @OA\Response(response=200, description="User successfully signed out"),
+     *   description="logout",
+     *   @OA\RequestBody(
+     *   @OA\JsonContent(),
+     *         @OA\MediaType(
+     *            mediaType="multipart/form-data",
+     *            @OA\Schema(
+     *               type="object",
+     *               required={"token"},
+     *               @OA\Property(property="token", type="string"),
+     *    ),
+     *        ),
+     *    ),
+     *   @OA\Response(response=201, description="User successfully registered"),
+     *   @OA\Response(response=401, description="The email has already been taken"),
+     *   security={
+     *       {"Bearer": {}}
+     *     }
      * )
+     * Logout user
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
+
     public function logout(Request $request)
     {
-        $validator = Validator::make($request->only('token'), [
-            'token' => 'required'
-        ]);
-        if ($validator->fails()) {
-            return response()->json(['error' => 'logout failed'], 200);
+        $user = JWTAuth::authenticate($request->token);
+
+        if(!$user){
+            log::warning('Invalid Authorisation ');
+            return response()-> json([
+                'message' => 'Invalid token'
+            ], 400);
         }
-        try {
+        else{
             JWTAuth::invalidate($request->token);
+            log::info('User successfully logged out');
             return response()->json([
                 'success' => true,
                 'message' => 'User has been logged out'
             ]);
-        } catch (JWTException $exception) {
-            return response()->json([
-                'token' => $request->token,
-                'exception' => $exception,
-                'success' => false,
-                'message' => 'Sorry, user cannot be logged out'
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        }     
     }
-/**
+
+    /**
      * * @OA\Get(
-     *   path="/api/get_user",
+     *   path="/api/getuser",
      *   summary="getuser",
      *   description="getuser",
      *   @OA\RequestBody(
@@ -181,29 +209,28 @@ class usercontroller extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
 
-    public function get_user(Request $request)
+    public function getUser(Request $request)
     {
         $user = JWTAuth::authenticate($request->token);
 
         if(!$user){
+            log::error('Invalid authorisation token');
             return response()-> json([
-                'status'=>401,
                 'message' => 'Invalid token'
-            ]);
+            ], 400);
         }
 
         else{
         return response()->json([
-            'status'=>201,
             'firstname' => $user->firstname,
             'lastname' => $user->lastname,
             'email' => $user->email,            
-        ]);
+        ],200);
         }
     }
 
 
-         /**
+    /**
      *  @OA\Post(
      *   path="/api/forgotPassword",
      *   summary="forgot password",
@@ -246,6 +273,7 @@ class usercontroller extends Controller
         $user = User::where('email', $request->email)->first();
 
         if(!$user){
+            log::error('Not a registered email');
             return response()->json([
                 'status' => 400,
                 'message' => 'We can not find user with that email id'
@@ -314,6 +342,7 @@ class usercontroller extends Controller
         
         if(!$user){
             return response()->json([
+                log::warning('Invalid Authorisation Token '),
                 'status' => 400,
                 'message' => 'we can not find User with such Mail Address',
             ]);
@@ -321,6 +350,7 @@ class usercontroller extends Controller
         else{
             $user->password = bcrypt($request->new_password);
             $user->save();
+            log::info('Password updated successfully');
             return response()->json([
                 'status' => 200,
                 'message' => 'Password Reset Successfull'
