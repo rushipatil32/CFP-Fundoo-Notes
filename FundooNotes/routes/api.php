@@ -32,20 +32,29 @@ Route::get('logout', [usercontroller::class, 'logout']);
 Route::get('get_user', [usercontroller::class, 'get_user']);
 Route::post('resetPassword', [usercontroller::class, 'resetPassword']);
 
-
 Route::post('createNote', [NoteController::class, 'createNote']);
 Route::get('readNote', [NoteController::class, 'readNote']);
-Route::get('readNoteById', [NoteController::class, 'readNoteById']);
+Route::post('readNoteById', [NoteController::class, 'readNoteById']);
 Route::post('updateNoteById', [NoteController::class, 'updateNoteById']);
 Route::post('deleteNoteById', [NoteController::class, 'deleteNoteById']);
 Route::post('addNoteLabel', [NoteController::class, 'addNoteLabel']);
 Route::post('deleteNoteLabel', [NoteController::class, 'deleteNoteLabel']);
+Route::post('pinNoteById',[NoteController::class,'pinNoteById']);
+Route::post('unpinNoteById',[NoteController::class,'unpinNoteById']);
+Route::post('archiveNoteById',[NoteController::class,'archiveNoteById']);
+Route::post('unarchiveNoteById',[NoteController::class,'unarchiveNoteById']);
+Route::post('colourNoteById', [NoteController::class, 'colourNoteById']);
+Route::get('paginationNote', [NoteController::class, 'paginationNote']);
+Route::get('getAllPinnedNotes', [NoteController::class, 'getAllPinnedNotes']);
+Route::get('getAllArchivedNotes', [NoteController::class, 'getAllArchivedNotes']);
+
 
 Route::post('createLabel', [LabelController::class, 'createLabel']);
 Route::get('readLabel', [LabelController::class, 'readLabel']);
 Route::get('readLabelById', [LabelController::class, 'readLabelById']);
 Route::post('updateLabelById', [LabelController::class, 'updateLabelById']);
 Route::post('deleteLabelById', [LabelController::class, 'deleteLabelById']);
+
 
 });
 Route::middleware('auth:api')->get('/user', function (Request $request) {

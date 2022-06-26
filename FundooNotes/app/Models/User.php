@@ -73,14 +73,6 @@ class User extends Authenticatable implements JWTSubject
         $this->attributes['lastname'] = ucfirst($value);
     }
 
-    /**
-     * Accessor for first name attribute
-     * When user is retrived from database, 
-     * first letter of first name will be upper case and 
-     * Mr/s. will be added while displaying
-     */
-    public function getFirstNameAttribute($value)
-    {
-        return 'Mr/s. ' . ucfirst($value);
-    }
+    
+    
 }

@@ -18,6 +18,10 @@ class Notes extends Model implements JWTSubject
         'title',
         'description',
         'user_id',
+        'pin',
+        'archive',
+        'colour',
+        'label',
         
     ];
     /**
@@ -63,5 +67,33 @@ class Notes extends Model implements JWTSubject
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function noteId($id) {
+        return Notes::where('id', $id)->first();
+    }
+    /**
+     * Function to get the pinned notes
+     * Passing the user as a parameter
+     * 
+     * @return array
+     */
+    public static function getPinnedNotes($user)
+    {
+        $notes = Notes::where('user_id', $user->id)->where('pin',1)->get();
+
+        return $notes;
+    }
+    /**
+     * Function to get the Archived Notes
+     * Passing the user as a parameter
+     * 
+     * @return array
+     */
+    public static function getArchivedNotes($user)
+    {
+        $notes = Notes::where('user_id', $user->id)->where('archive', 1)->get();
+
+        return $notes;
     }
 }
