@@ -57,10 +57,7 @@ class LabelController extends Controller
 
             if (!$user) {
                 Log::error('Invalid Authorization Token');
-                return response()->json([
-                    'status' => 401,
-                    'message' => 'Invalid Autherization token'
-                ]);
+                throw new FundoNotesException('Invalid Authorization Token', 401);
             } else {
                 $label = Labels::create([
                     'labelname' => $request->labelname,
@@ -113,10 +110,7 @@ class LabelController extends Controller
 
             if (!$user) {
                 Log::error('Invalid Authorization Token');
-                return response()->json([
-                    'status' => 401,
-                    'message' => 'Invalid Authorization Token',
-                ]);
+                throw new FundoNotesException('Invalid Authorization Token', 401);
             }
 
             $id = $user->id;
@@ -124,10 +118,7 @@ class LabelController extends Controller
 
             if (!$label) {
                 Log::error('Label Not Found');
-                return response()->json([
-                    'status' => 404,
-                    'message' => 'Label Not Found'
-                ]);
+                throw new FundoNotesException('Label Not Found', 404);
             } else {
                 Log::info('Labels Retrieved Successfully.');
                 return response()->json([
@@ -169,20 +160,13 @@ class LabelController extends Controller
 
             if (!$user) {
                 Log::error('Invalid Authorization Token');
-                return response()->json([
-                    'status' => 401,
-                    'message' => 'Invalid Autherization token'
-                ]);
+                throw new FundoNotesException('Invalid Authorization Token', 401);
             }
             $label = Labels::where('user_id', $user->id)->get();
 
             if (!$label) {
                 Log::error('Label Not Found');
-                return response()->json([
-                    'status' => 404,
-                    'message' => 'Label Not Found'
-
-                ]);
+                throw new FundoNotesException('Label Not Found', 404);
             } else {
                 Log::info('Label Retrived Successfully');
                 return response()->json([
@@ -242,20 +226,14 @@ class LabelController extends Controller
 
             if (!$user) {
                 Log::error('Invalid Authorization Token');
-                return response()->json([
-                    'status' => 401,
-                    'message' => 'Invalid Authorization Token',
-                ]);
+                throw new FundoNotesException('Invalid Authorization Token', 401);
             }
 
             $label = Labels::where('user_id', $user->id)->where('id', $request->id)->first();
 
             if (!$label) {
                 Log::error('Label Not Found');
-                return response()->json([
-                    'status' => 404,
-                    'message' => 'Label Not Found'
-                ]);
+                throw new FundoNotesException('Label Not Found', 404);
             }
 
             $label->update([
@@ -320,20 +298,14 @@ class LabelController extends Controller
 
             if (!$user) {
                 Log::error('Invalid Authorization Token');
-                return response()->json([
-                    'status' => 401,
-                    'message' => 'Invalid Authorization Token',
-                ]);
+                throw new FundoNotesException('Invalid Authorization Token', 401);
             }
 
             $label = Labels::where('id', $request->id)->first();
 
             if (!$label) {
                 Log::error('Label Not Found');
-                return response()->json([
-                    'status' => 404,
-                    'mesaage' => 'Enter valid id',
-                ]);
+                throw new FundoNotesException('Label Not Found', 404);
             } else {
                 $label->delete($label->id);
                 Log::info('Label Successfully Deleted');

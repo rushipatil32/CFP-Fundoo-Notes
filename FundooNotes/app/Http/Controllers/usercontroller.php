@@ -284,10 +284,7 @@ class usercontroller extends Controller
 
             if (!$user) {
                 log::error('Not a registered email');
-                return response()->json([
-                    'status' => 400,
-                    'message' => 'We can not find user with that email id'
-                ]);
+                throw new FundoNotesException('Not a Registered Email', 404);
             }
 
             $token = JWTAuth::fromUser($user);
@@ -360,11 +357,8 @@ class usercontroller extends Controller
             $user = JWTAuth::authenticate($request->token);
 
             if (!$user) {
-                return response()->json([
-                    log::warning('Invalid Authorisation Token '),
-                    'status' => 400,
-                    'message' => 'we can not find User with such Mail Address',
-                ]);
+                Log::error('Invalid Authorization Token');
+                throw new FundoNotesException('Invalid Authorization Token', 401);
             } else {
                 $user->password = bcrypt($request->new_password);
                 $user->save();
