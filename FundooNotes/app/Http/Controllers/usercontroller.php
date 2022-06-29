@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\FundoNotesException;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;;
+
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use App\Notifications\PasswordResetRequest;
 use Symfony\Component\HttpFoundation\Response;
 use Mail;
 
@@ -43,29 +46,36 @@ class usercontroller extends Controller
      *@return \Illuminate\Http\JsonResponse
      */
 
-    function register(Request $request){
-        $validator = Validator::make($request->all(),[
-            'firstname' => 'required|string|between:2,100',
-            'lastname' => 'required|string|between:2,100',
-            'email' => 'required|string|email|max:150',
-            'password' => 'required|string|min:6',
-            'password_confirmation' => 'required|same:password',
-        ]);
-        if ($validator->fails()){
-            return response()->json($validator->errors()->tojson(), 400);
+    function register(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'firstname' => 'required|string|between:2,100',
+                'lastname' => 'required|string|between:2,100',
+                'email' => 'required|string|email|max:150',
+                'password' => 'required|string|min:6',
+                'password_confirmation' => 'required|same:password',
+            ]);
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->tojson(), 400);
+            }
+
+            $user = User::create([
+                'firstname' => $request->firstname,
+                'lastname' => $request->lastname,
+                'email' => $request->email,
+                'password' => bcrypt($request->password)
+            ]);
+
+            return response()->json([
+                'message' => 'User successfully registered',
+                'user' => $user
+            ], 200);
+        } catch (FundoNotesException $exception) {
+            return response()->json([
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
-
-        $user = User::create([
-            'firstname' => $request->firstname,
-            'lastname' => $request->lastname,
-            'email' => $request->email,
-            'password' => bcrypt($request->password)
-        ]);
-
-        return response()->json([
-            'message' => 'User successfully registered',
-            'user' => $user
-        ], 200);
     }
 
     /**
@@ -95,6 +105,7 @@ class usercontroller extends Controller
 
     public function login(Request $request)
     {
+
         $credentials = $request->only('email', 'password');
 
         $validator = Validator::make($credentials, [
@@ -144,7 +155,7 @@ class usercontroller extends Controller
         ], 200);
     }
 
-         /**
+    /**
      * * @OA\Post(
      *   path="/api/logout",
      *   summary="logout",
@@ -175,20 +186,19 @@ class usercontroller extends Controller
     {
         $user = JWTAuth::authenticate($request->token);
 
-        if(!$user){
+        if (!$user) {
             log::warning('Invalid Authorisation ');
-            return response()-> json([
+            return response()->json([
                 'message' => 'Invalid token'
             ], 400);
-        }
-        else{
+        } else {
             JWTAuth::invalidate($request->token);
             log::info('User successfully logged out');
             return response()->json([
                 'success' => true,
                 'message' => 'User has been logged out'
             ]);
-        }     
+        }
     }
 
     /**
@@ -213,19 +223,17 @@ class usercontroller extends Controller
     {
         $user = JWTAuth::authenticate($request->token);
 
-        if(!$user){
+        if (!$user) {
             log::error('Invalid authorisation token');
-            return response()-> json([
+            return response()->json([
                 'message' => 'Invalid token'
             ], 400);
-        }
-
-        else{
-        return response()->json([
-            'firstname' => $user->firstname,
-            'lastname' => $user->lastname,
-            'email' => $user->email,            
-        ],200);
+        } else {
+            return response()->json([
+                'firstname' => $user->firstname,
+                'lastname' => $user->lastname,
+                'email' => $user->email,
+            ], 200);
         }
     }
 
@@ -260,44 +268,53 @@ class usercontroller extends Controller
      * @return success reponse about reset link.
      */
 
-    public function forgotPassword(Request $request){
-        $validator = Validator::make($request->all(),[
-            'email' => 'required|string|email|max:100',
-        ]);
-
-        if ($validator->fails()){
-            return response()->json([
-                'Validation_error' => $validator->errors(),
+    public function forgotPassword(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|string|email|max:100',
             ]);
-        }
-        $user = User::where('email', $request->email)->first();
 
-        if(!$user){
-            log::error('Not a registered email');
-            return response()->json([
-                'status' => 400,
-                'message' => 'We can not find user with that email id'
-            ]);
-        }
+            if ($validator->fails()) {
+                return response()->json([
+                    'Validation_error' => $validator->errors(),
+                ]);
+            }
+            $user = User::where('email', $request->email)->first();
 
-        else{
+            if (!$user) {
+                log::error('Not a registered email');
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'We can not find user with that email id'
+                ]);
+            }
+
             $token = JWTAuth::fromUser($user);
-            $data = array('name'=>"Rushikesh Patil", "resetlink"=>$token);
-            // $user->notify((new PasswordResetRequest($user->email, $token)));
-            Mail::send('mail', $data, function($message) {
-                $message->to('rushipatil6632@gmail.com', 'abc')->subject('Reset Password');
-                // $message->attach('$token');
-                $message->from('rushipatil6632@gmail.com','Rushikesh Patil');
-             });
-             return response()->json([
-                'status' => 200,
-                'message' => 'Password Reset link is send to your email'
-             ]);
+
+            if ($user) {
+                $data = array('name' => "Rushikesh Patil", "resetlink" => $token);
+                Mail::send('mail', $data, function ($message) {
+                    $message->to('rushipatil6632@gmail.com', 'abc')->subject('Reset Password');
+                    // $message->attach('$token');
+                    $message->from('rushipatil6632@gmail.com', 'Rushikesh Patil');
+                });
+
+                Log::info('Reset Password Token Sent to your Email');
+                return response()->json([
+                    'status' => 200,
+                    'message' => 'Password Reset link is send to your email'
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
+            return response()->json([
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
 
-     /**
+    /**
      *   @OA\Post(
      *   path="/api/resetPassword",
      *   summary="reset password",
@@ -325,36 +342,42 @@ class usercontroller extends Controller
      * is there or not if not returns a failure response and checks the user email also if everything is
      * ok it will reset the password successfully.
      */
-    public function resetPassword(Request $request){
-        $validate = Validator::make($request->all(), [
-            'new_password' => 'min:6|required|',
-            'password_confirmation' => 'required|same:new_password',
-            
-        ]);
+    public function resetPassword(Request $request)
+    {
+        try {
+            $validate = Validator::make($request->all(), [
+                'new_password' => 'min:6|required|',
+                'password_confirmation' => 'required|same:new_password',
 
-        if ($validate->fails()) {
-            return response()->json([
-                'status' => 400 ,
-                'message' => "Password doesn't match"
             ]);
-        }
-        $user = JWTAuth::authenticate($request->token);
-        
-        if(!$user){
+
+            if ($validate->fails()) {
+                return response()->json([
+                    'status' => 400,
+                    'message' => "Password doesn't match"
+                ]);
+            }
+            $user = JWTAuth::authenticate($request->token);
+
+            if (!$user) {
+                return response()->json([
+                    log::warning('Invalid Authorisation Token '),
+                    'status' => 400,
+                    'message' => 'we can not find User with such Mail Address',
+                ]);
+            } else {
+                $user->password = bcrypt($request->new_password);
+                $user->save();
+                log::info('Password updated successfully');
+                return response()->json([
+                    'status' => 200,
+                    'message' => 'Password Reset Successfull'
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                log::warning('Invalid Authorisation Token '),
-                'status' => 400,
-                'message' => 'we can not find User with such Mail Address',
-            ]);
-        }
-        else{
-            $user->password = bcrypt($request->new_password);
-            $user->save();
-            log::info('Password updated successfully');
-            return response()->json([
-                'status' => 200,
-                'message' => 'Password Reset Successfull'
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 }

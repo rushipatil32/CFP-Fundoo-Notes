@@ -7,22 +7,22 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PasswordResetRequest extends Notification
+class MailToCollab extends Notification
 {
     use Queueable;
 
-    public $token;
     public $email;
-    /**
+    public $data;
+
+   /**
      * Create a new notification instance.
      *
      * @return void
      */
-    public function __construct(string $email, string $token)
+    public function __construct(string $email, string $data)
     {
-        $this->token = $token;
-        $this->user = $email;
-
+        $this->email = $email;
+        $this->data = $data;
     }
 
     /**
@@ -44,11 +44,12 @@ class PasswordResetRequest extends Notification
      */
     public function toMail($notifiable)
     {
-        // $url = "/api/auth/resetpassword".$this->token;
+        $url = url("/api/login/");
         return (new MailMessage)
-                    ->line('You have receive this email for reset password token =' . $this->token)
-                    ->action('Password Reset Request', url(''))
-                    ->line('Thank you for using our application!');
+            ->line('(' . $this->email . ') shared a note with you.')
+            ->line($this->data)
+            ->action('Open in FundoNotes: ', url($url))
+            ->line('Thank you for using our application!');
     }
 
     /**

@@ -9,6 +9,160 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/api/addCollaboratorByNoteId": {
+            "post": {
+                "summary": "Add Colaborator ",
+                "description": " Add Colaborator a to specific Note ",
+                "operationId": "3ca0b9d0e282a1181aa23151f6bffda9",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "note_id"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "email"
+                                    },
+                                    "note_id": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Collaborator Created Sucessfully"
+                    },
+                    "202": {
+                        "description": "Collab Not Added"
+                    },
+                    "401": {
+                        "description": "Invalid Authorization Token"
+                    },
+                    "404": {
+                        "description": "Not a Registered Email"
+                    },
+                    "403": {
+                        "description": "Collaborator Already Created"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/updateCollaboratorById": {
+            "post": {
+                "summary": "update Colaborator",
+                "description": " Update Colaborator Note ",
+                "operationId": "d9e84b722ef4ced09b8904919c05232e",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "note_id",
+                                    "updated_title",
+                                    "updated_description"
+                                ],
+                                "properties": {
+                                    "note_id": {
+                                        "type": "integer"
+                                    },
+                                    "updated_title": {
+                                        "type": "string"
+                                    },
+                                    "updated_descrition": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Collaborator updated Sucessfully"
+                    },
+                    "401": {
+                        "description": "Invalid Authorization Token"
+                    },
+                    "404": {
+                        "description": "Not a Registered Email"
+                    },
+                    "409": {
+                        "description": "Collaborator Already Created"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/deleteCollaboratorById": {
+            "post": {
+                "summary": "delete Colaborator",
+                "description": " Delete Colaborator Note ",
+                "operationId": "ffd8b9087eb005c206351d65df8e8963",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "note_id",
+                                    "email"
+                                ],
+                                "properties": {
+                                    "note_id": {
+                                        "type": "integer"
+                                    },
+                                    "email": {
+                                        "type": "email"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Collaborator deleted Sucessfully"
+                    },
+                    "401": {
+                        "description": "Invalid Authorization Token"
+                    },
+                    "404": {
+                        "description": "Not a Registered Email"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/createLabel": {
             "post": {
                 "summary": "create label",
@@ -80,14 +234,14 @@
                 "operationId": "9ea0c1e58d75d6aaaeb4106992d6a628",
                 "requestBody": {},
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Labels Retrieved Successfully."
                     },
                     "401": {
                         "description": "Invalid authorization token"
                     },
                     "404": {
-                        "description": "No label is created by this user"
+                        "description": "Label not found"
                     }
                 },
                 "security": [
@@ -371,7 +525,7 @@
                     }
                 },
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Enter Valid ID"
                     },
                     "404": {
@@ -508,7 +662,7 @@
                     }
                 },
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Note Pinned Sucessfully"
                     },
                     "404": {
@@ -548,7 +702,7 @@
                     }
                 },
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Note Unpinned Sucessfully"
                     },
                     "404": {
@@ -575,7 +729,7 @@
                     "401": {
                         "description": "Invalid Authorization Token"
                     },
-                    "201": {
+                    "200": {
                         "description": "Fetched All Pinned Notes Successfully"
                     }
                 },
@@ -612,7 +766,7 @@
                     }
                 },
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Note Archived Sucessfully"
                     },
                     "404": {
@@ -652,7 +806,7 @@
                     }
                 },
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Note Unarchived Sucessfully"
                     },
                     "404": {
@@ -720,7 +874,7 @@
                     }
                 },
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Note Coloured Sucessfully"
                     },
                     "404": {
@@ -744,7 +898,7 @@
                 "operationId": "755fc91f8ac78cd7913b1bad409bb71c",
                 "requestBody": {},
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Pagination Applied to all Notes"
                     }
                 }
@@ -838,22 +992,50 @@
             }
         },
         "/api/logout": {
-            "get": {
+            "post": {
                 "summary": "logout",
-                "description": " logout ",
-                "operationId": "f4a209257f4729756a30a81ad7a6b929",
-                "responses": {
-                    "200": {
-                        "description": "User successfully signed out"
+                "description": "logout",
+                "operationId": "6fedbec7960e6257410f1e00e1ce55a4",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "token"
+                                ],
+                                "properties": {
+                                    "token": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {}
+                        }
                     }
-                }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User successfully registered"
+                    },
+                    "401": {
+                        "description": "The email has already been taken"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
             }
         },
-        "/api/get_user": {
+        "/api/getuser": {
             "get": {
                 "summary": "getuser",
                 "description": "getuser",
-                "operationId": "73d58840d3e08274d4ca475bb9f5f0a8",
+                "operationId": "76af3a7e7e4b0f5eda61a621153af3e6",
                 "requestBody": {},
                 "responses": {
                     "201": {

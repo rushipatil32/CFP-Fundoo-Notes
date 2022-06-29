@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\usercontroller;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\LabelController;
+use App\Http\Controllers\CollaboratorController;
+
 
 // use App\Http\Controllers\SendMailController;
 
@@ -55,6 +57,9 @@ Route::get('readLabelById', [LabelController::class, 'readLabelById']);
 Route::post('updateLabelById', [LabelController::class, 'updateLabelById']);
 Route::post('deleteLabelById', [LabelController::class, 'deleteLabelById']);
 
+Route::post('addCollaboratorByNoteId',[CollaboratorController::class,'addCollaboratorByNoteId']);
+Route::post('updateCollaboratorById',[CollaboratorController::class,'updateCollaboratorById']);
+Route::post('deleteCollaboratorById',[CollaboratorController::class,'deleteCollaboratorById']);
 
 });
 Route::middleware('auth:api')->get('/user', function (Request $request) {

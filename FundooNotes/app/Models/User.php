@@ -73,6 +73,33 @@ class User extends Authenticatable implements JWTSubject
         $this->attributes['lastname'] = ucfirst($value);
     }
 
-    
+    /**
+     * Function to get user details by email
+     * Passing the email as parameter
+     * 
+     * @return array
+     */
+    public static function getUserByEmail($email){
+        $user = User::where('email', $email)->first();
+        return $user;
+    }
+
+    public function collaborators()
+    {
+        return $this->hasMany('App\Models\Collaborator');
+    }
+
+    public function notes()
+    {
+        return $this->hasMany('App\Models\Notes');
+    }  
+    public function labels()
+    {
+        return $this->hasmany('App\Models\Labels');
+    }
+    public function label_notes()
+    {
+        return $this->hasmany('App\Models\LabelNotes');
+    }
     
 }

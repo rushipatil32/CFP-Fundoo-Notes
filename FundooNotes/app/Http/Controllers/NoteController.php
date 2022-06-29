@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\FundoNotesException;
 use Illuminate\Http\Request;
 use App\Models\Notes;
 use App\Models\Labels;
@@ -48,33 +49,39 @@ class NoteController extends Controller
      */
     public function createNote(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|between:2,50',
-            'description' => 'required|string|between:3,500',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|between:2,50',
+                'description' => 'required|string|between:3,500',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->tojson(), 400);
-        }
-        $user = JWTAuth::authenticate($request->token);
-        $user_id = $user->id;
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->tojson(), 400);
+            }
+            $user = JWTAuth::authenticate($request->token);
+            $user_id = $user->id;
 
-        if (!$user) {
+            if (!$user) {
+                return response()->json([
+                    'status' => 401,
+                    'message' => 'Invalid Autherization token'
+                ]);
+            } else {
+                $note = Notes::create([
+                    'title' => $request->title,
+                    'description' => $request->description,
+                    'user_id' => $user_id,
+                ]);
+                return response()->json([
+                    'status' => 200,
+                    'message' => 'Note successfully created',
+                    'note' => $note
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status' => 401,
-                'message' => 'Invalid Autherization token'
-            ]);
-        } else {
-            $note = Notes::create([
-                'title' => $request->title,
-                'description' => $request->description,
-                'user_id' => $user_id,
-            ]);
-            return response()->json([
-                'status' => 200,
-                'message' => 'Note successfully created',
-                'note' => $note
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
@@ -97,27 +104,33 @@ class NoteController extends Controller
 
     public function readNote(Request $request)
     {
-        $user = JWTAuth::authenticate($request->token);
+        try {
+            $user = JWTAuth::authenticate($request->token);
 
-        if (!$user) {
-            Log::error('Invalid User');
-            return response()->json([
-                'status' => 404,
-                'message' => 'Invalid Autherization token'
-            ]);
-        }
-        $note = Notes::where('user_id', $user->id)->get();
+            if (!$user) {
+                Log::error('Invalid User');
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Invalid Autherization token'
+                ]);
+            }
+            $note = Notes::where('user_id', $user->id)->get();
 
-        if (!$note) {
+            if (!$note) {
+                return response()->json([
+                    'status' => 400,
+                    'messge' => 'No note created by current user',
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 200,
+                    'note' => $note
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status' => 400,
-                'messge' => 'No note created by current user',
-            ]);
-        } else {
-            return response()->json([
-                'status' => 200,
-                'note' => $note
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
@@ -151,38 +164,43 @@ class NoteController extends Controller
      */
     function readNoteById(Request $request)
     {
-
-        $validator = Validator::make($request->only('id'), [
-            'id' => 'required'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->tojson(), 400);
-        }
-
-        $user = JWTAuth::authenticate($request->token);
-
-        if (!$user) {
-            return response()->json([
-                'status' => 401,
-                'message' => 'Invalid Authorization Token',
+        try {
+            $validator = Validator::make($request->only('id'), [
+                'id' => 'required'
             ]);
-        }
 
-        $userid = $user->id;
-        $note = Notes::where('user_id', $userid)->where('id', $request->id)->first();
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->tojson(), 400);
+            }
 
-        if (!$note) {
+            $user = JWTAuth::authenticate($request->token);
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 401,
+                    'message' => 'Invalid Authorization Token',
+                ]);
+            }
+
+            $userid = $user->id;
+            $note = Notes::where('user_id', $userid)->where('id', $request->id)->first();
+
+            if (!$note) {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Notes not found'
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 200,
+                    'note' => $note,
+                    'messege' => 'All notes found successfully'
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status' => 404,
-                'message' => 'Notes not found'
-            ]);
-        } else {
-            return response()->json([
-                'status' => 200,
-                'note' => $note,
-                'messege' => 'All notes found successfully'
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
     /**
@@ -219,47 +237,53 @@ class NoteController extends Controller
      */
     public function updateNoteById(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|between:2,30',
-            'description' => 'required|string|between:3,1000',
-            'id' => 'required',
-        ]);
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $user = JWTAuth::authenticate($request->token);
-
-        if (!$user) {
-            Log::channel('customLog')->error('Invalid User');
-            return response()->json([
-                'status' => 401,
-                'message' => 'Invalid Authorization Token',
+        try {
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|between:2,30',
+                'description' => 'required|string|between:3,1000',
+                'id' => 'required',
             ]);
-        }
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
+            }
 
-        $note = Notes::where('user_id', $user->id)->where('id', $request->id)->first();
+            $user = JWTAuth::authenticate($request->token);
 
-        if (!$note) {
+            if (!$user) {
+                Log::channel('customLog')->error('Invalid User');
+                return response()->json([
+                    'status' => 401,
+                    'message' => 'Invalid Authorization Token',
+                ]);
+            }
 
-            return response()->json([
-                'status' => 404,
-                'message' => 'Notes not found'
+            $note = Notes::where('user_id', $user->id)->where('id', $request->id)->first();
+
+            if (!$note) {
+
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Notes not found'
+                ]);
+            }
+
+            $note->update([
+                'title' => $request->title,
+                'description' => $request->description,
+                'user_id' => $user->id,
             ]);
+
+            Log::channel('customLog')->info('Note updated', ['user_id' => $user->id]);
+            return response()->json([
+                'status' => 400,
+                'note' => $note,
+                'mesaage' => 'Note Successfully updated',
+            ]);
+        } catch (FundoNotesException $exception) {
+            return response()->json([
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
-
-        $note->update([
-            'title' => $request->title,
-            'description' => $request->description,
-            'user_id' => $user->id,
-        ]);
-
-        Log::channel('customLog')->info('Note updated', ['user_id' => $user->id]);
-        return response()->json([
-            'status' => 400,
-            'note' => $note,
-            'mesaage' => 'Note Successfully updated',
-        ]);
     }
 
     /**
@@ -294,38 +318,44 @@ class NoteController extends Controller
      */
     public function deleteNoteById(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'id' => 'required',
-        ]);
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $user = JWTAuth::authenticate($request->token);
-
-        if (!$user) {
-            Log::channel('customLog')->error('Invalid User');
-            return response()->json([
-                'status' => 401,
-                'message' => 'Invalid Authorization Token',
+        try {
+            $validator = Validator::make($request->all(), [
+                'id' => 'required',
             ]);
-        }
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
+            }
 
-        $note = Notes::where('id', $request->id)->first();
+            $user = JWTAuth::authenticate($request->token);
 
-        if (!$note) {
-            Log::channel('customLog')->error('Notes Not Found', ['id' => $request->id]);
+            if (!$user) {
+                Log::channel('customLog')->error('Invalid User');
+                return response()->json([
+                    'status' => 401,
+                    'message' => 'Invalid Authorization Token',
+                ]);
+            }
+
+            $note = Notes::where('id', $request->id)->first();
+
+            if (!$note) {
+                Log::channel('customLog')->error('Notes Not Found', ['id' => $request->id]);
+                return response()->json([
+                    'status' => 404,
+                    'mesaage' => 'Notes not found',
+                ]);
+            } else {
+                $note->delete($note->id);
+                Log::channel('customLog')->info('notes deleted', ['user_id' => $user->id, 'note_id' => $request->id]);
+                return response()->json([
+                    'status' => 200,
+                    'mesaage' => 'Note Successfully deleted',
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status' => 404,
-                'mesaage' => 'Notes not found',
-            ]);
-        } else {
-            $note->delete($note->id);
-            Log::channel('customLog')->info('notes deleted', ['user_id' => $user->id, 'note_id' => $request->id]);
-            return response()->json([
-                'status' => 200,
-                'mesaage' => 'Note Successfully deleted',
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
@@ -363,53 +393,58 @@ class NoteController extends Controller
 
     function addNoteLabel(Request $request)
     {
-
-        $validator = Validator::make($request->all(), [
-            'label_id' => 'required|integer',
-            'note_id' => 'required|integer'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
-        }
-
-        $user = JWTAuth::parseToken()->authenticate();
-
-        if (!$user) {
-            log::error('Invalid Authorisation Token');
-            return response()->json([
-                'status' => 400,
-                'message' => 'Invalid Token',
+        try {
+            $validator = Validator::make($request->all(), [
+                'label_id' => 'required|integer',
+                'note_id' => 'required|integer'
             ]);
-        }
 
-        $notes = Notes::getNotesByNoteIdandUserId($request->note_id, $user->id);
-        $label = Labels::getLabelByLabelIdandUserId($request->label_id, $user->id);
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 400);
+            }
 
-        if (!$notes || !$label) {
-            log::error('Note or label not found');
-            return response()->json([
-                'status' => 401,
-                'message' => 'Note or label not found',
-            ]);
-        } else {
-            $labelnote = LabelNotes::getLabelNotesbyLabelIdNoteIdandUserId($request->label_id, $request->note_id, $user->id);
-            if ($labelnote) {
-                log::info('Label already exists');
+            $user = JWTAuth::parseToken()->authenticate();
+
+            if (!$user) {
+                log::error('Invalid Authorisation Token');
                 return response()->json([
-                    'status' => 402,
-                    'message' => 'Label already exists',
-                ]);
-            } else {
-
-                $notelabel = LabelNotes::createNoteLabel($request, $user->id);
-                log::info('Label created Successfully');
-                return response()->json([
-                    'status' => 200,
-                    'message' => 'Label and note added Successfully',
-                    'notelabel' => $notelabel,
+                    'status' => 400,
+                    'message' => 'Invalid Token',
                 ]);
             }
+
+            $notes = Notes::getNotesByNoteIdandUserId($request->note_id, $user->id);
+            $label = Labels::getLabelByLabelIdandUserId($request->label_id, $user->id);
+
+            if (!$notes || !$label) {
+                log::error('Note or label not found');
+                return response()->json([
+                    'status' => 401,
+                    'message' => 'Note or label not found',
+                ]);
+            } else {
+                $labelnote = LabelNotes::getLabelNotesbyLabelIdNoteIdandUserId($request->label_id, $request->note_id, $user->id);
+                if ($labelnote) {
+                    log::info('Label already exists');
+                    return response()->json([
+                        'status' => 402,
+                        'message' => 'Label already exists',
+                    ]);
+                } else {
+
+                    $notelabel = LabelNotes::createNoteLabel($request, $user->id);
+                    log::info('Label created Successfully');
+                    return response()->json([
+                        'status' => 200,
+                        'message' => 'Label and note added Successfully',
+                        'notelabel' => $notelabel,
+                    ]);
+                }
+            }
+        } catch (FundoNotesException $exception) {
+            return response()->json([
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
@@ -447,38 +482,44 @@ class NoteController extends Controller
     function deleteNoteLabel(Request $request)
     {
 
-        $validator = Validator::make($request->all(), [
-            'label_id' => 'required|integer',
-            'note_id' => 'required|integer'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
-        }
-
-        $user = JWTAuth::parseToken()->authenticate();
-
-        if (!$user) {
-            log::warning('Invalid Authorisation Token');
-            return response()->json([
-                'message' => 'Invalid Token',
-            ], 400);
-        }
-
-        $labelnote = LabelNotes::where('note_id', $request->note_id)->where('label_id', $request->label_id)->where('user_id', $user->id)->first();
-        if (!$labelnote) {
-            log::error('Label note not found');
-            return response()->json([
-                'status' => 400,
-                'message' => 'label Note not found with this credentials',
+        try {
+            $validator = Validator::make($request->all(), [
+                'label_id' => 'required|integer',
+                'note_id' => 'required|integer'
             ]);
+
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 400);
+            }
+
+            $user = JWTAuth::parseToken()->authenticate();
+
+            if (!$user) {
+                log::warning('Invalid Authorisation Token');
+                return response()->json([
+                    'message' => 'Invalid Token',
+                ], 400);
+            }
+
+            $labelnote = LabelNotes::where('note_id', $request->note_id)->where('label_id', $request->label_id)->where('user_id', $user->id)->first();
+            if (!$labelnote) {
+                log::error('Label note not found');
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'label Note not found with this credentials',
+                ]);
+            }
+            $labelnote->delete($labelnote->id);
+            log::info('label and note deleted successfully');
+            return response()->json([
+                'status' => 200,
+                'message' => 'label Note deleted Successfully',
+            ]);
+        } catch (FundoNotesException $exception) {
+            return response()->json([
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
-        $labelnote->delete($labelnote->id);
-        log::info('label and note deleted successfully');
-        return response()->json([
-            'status' => 200,
-            'message' => 'label Note deleted Successfully',
-        ]);
     }
 
     /**
@@ -512,36 +553,41 @@ class NoteController extends Controller
 
     function pinNoteById(Request $request)
     {
-
-        $validator = Validator::make($request->all(), [
-            'id' => 'required|integer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $noteObject = new Notes();
-        $user = JWTAuth::authenticate($request->id);
-        $note = $noteObject->noteId($request->id);
-
-        if (!$note) {
-            Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id]);
-        }
-
-        if ($note->pin == 0) {
-            if ($note->archive == 1) {
-                $note->archive = 0;
-                $note->save();
-            }
-            $note->pin = 1;
-            $note->save();
-
-            log::info('Note pinned successfully');
-            return response()->json([
-                'status' => 200,
-                'message' => 'Note pinned Successfully',
+        try {
+            $validator = Validator::make($request->all(), [
+                'id' => 'required|integer',
             ]);
+
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
+            }
+
+            $noteObject = new Notes();
+            $user = JWTAuth::authenticate($request->id);
+            $note = $noteObject->noteId($request->id);
+
+            if (!$note) {
+                Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id]);
+            }
+
+            if ($note->pin == 0) {
+                if ($note->archive == 1) {
+                    $note->archive = 0;
+                    $note->save();
+                }
+                $note->pin = 1;
+                $note->save();
+
+                log::info('Note pinned successfully');
+                return response()->json([
+                    'status' => 200,
+                    'message' => 'Note pinned Successfully',
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
+            return response()->json([
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
@@ -576,36 +622,41 @@ class NoteController extends Controller
 
     function unpinNoteById(Request $request)
     {
-
-        $validator = Validator::make($request->all(), [
-            'id' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $noteObject = new Notes();
-        $user = JWTAuth::parseToken()->authenticate();
-        $note = $noteObject->noteId($request->id);
-
-        if (!$note) {
-            Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id],);
-            return response()->json([
-                'status' => 400,
-                'message' => 'Note not found'
+        try {
+            $validator = Validator::make($request->all(), [
+                'id' => 'required',
             ]);
-        }
 
-        if ($note->pin == 1) {
-            $note->pin = 0;
-            $note->save();
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
+            }
 
-            Log::info('note unpin', ['user_id' => $user, 'note_id' => $request->id]);
+            $noteObject = new Notes();
+            $user = JWTAuth::parseToken()->authenticate();
+            $note = $noteObject->noteId($request->id);
+
+            if (!$note) {
+                Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id],);
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'Note not found'
+                ]);
+            }
+
+            if ($note->pin == 1) {
+                $note->pin = 0;
+                $note->save();
+
+                Log::info('note unpin', ['user_id' => $user, 'note_id' => $request->id]);
+                return response()->json([
+                    'status' => 200,
+                    'message' => 'Note Unpinned Sucessfully'
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status' => 200,
-                'message' => 'Note Unpinned Sucessfully'
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
     /**
@@ -632,11 +683,12 @@ class NoteController extends Controller
      */
     public function getAllPinnedNotes()
     {
+        try {
             $user = JWTAuth::parseToken()->authenticate();
             if (!$user) {
                 Log::error('Invalid Authorization Token');
                 return response()->json([
-                    'status'=>401,
+                    'status' => 401,
                     'message' => 'Invalid Authorization Token'
                 ]);
             } else {
@@ -644,16 +696,21 @@ class NoteController extends Controller
                 if (!$userNotes) {
                     Log::error('Notes Not Found');
                     return response()->json([
-                        'status'=>404,
+                        'status' => 404,
                         'message' => 'Notes Not Found'
                     ]);
                 }
                 return response()->json([
-                    'status'=>200,
+                    'status' => 200,
                     'message' => 'Found All Pinned Notes Successfully',
                     'notes' => $userNotes
                 ]);
             }
+        } catch (FundoNotesException $exception) {
+            return response()->json([
+                'message' => $exception->message()
+            ], $exception->statusCode());
+        }
     }
 
     /**
@@ -688,39 +745,44 @@ class NoteController extends Controller
 
     function archiveNoteById(Request $request)
     {
-
-        $validator = Validator::make($request->all(), [
-            'id' => 'required',
-        ]);
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $noteObject = new Notes();
-        $user = JWTAuth::parseToken()->authenticate();
-        $note = $noteObject->noteId($request->id);
-
-        if (!$note) {
-            Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id]);
-            return response()->json([
-                'status' => 401,
-                'message' => 'Note Not Found'
+        try {
+            $validator = Validator::make($request->all(), [
+                'id' => 'required',
             ]);
-        }
-
-        if ($note->archive == 0) {
-            if ($note->pin == 1) {
-                $note->pin = 0;
-                $note->save();
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
             }
-            $note->archive = 1;
-            $note->save();
 
-            Log::info('notes Archived', ['user_id' => $user, 'note_id' => $request->id]);
+            $noteObject = new Notes();
+            $user = JWTAuth::parseToken()->authenticate();
+            $note = $noteObject->noteId($request->id);
+
+            if (!$note) {
+                Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id]);
+                return response()->json([
+                    'status' => 401,
+                    'message' => 'Note Not Found'
+                ]);
+            }
+
+            if ($note->archive == 0) {
+                if ($note->pin == 1) {
+                    $note->pin = 0;
+                    $note->save();
+                }
+                $note->archive = 1;
+                $note->save();
+
+                Log::info('notes Archived', ['user_id' => $user, 'note_id' => $request->id]);
+                return response()->json([
+                    'status' => 401,
+                    'message' => 'Note Archived Sucessfully'
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status' => 401,
-                'message' => 'Note Archived Sucessfully'
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
@@ -755,40 +817,45 @@ class NoteController extends Controller
 
     function unarchiveNoteById(Request $request)
     {
-
-        $validator = Validator::make($request->all(), [
-            'id' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $noteObject = new Notes();
-        $user = JWTAuth::parseToken()->authenticate();
-        $note = $noteObject->noteId($request->id);
-
-        if (!$note) {
-            Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id]);
-            return response()->json([
-                'status' => 400,
-                'message' => 'Notes not Found'
+        try {
+            $validator = Validator::make($request->all(), [
+                'id' => 'required',
             ]);
-        }
 
-        if ($note->archive == 1) {
-            $note->archive = 0;
-            $note->save();
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
+            }
 
-            Log::info('notes UnArchived', ['user_id' => $user, 'note_id' => $request->id]);
+            $noteObject = new Notes();
+            $user = JWTAuth::parseToken()->authenticate();
+            $note = $noteObject->noteId($request->id);
+
+            if (!$note) {
+                Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id]);
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'Notes not Found'
+                ]);
+            }
+
+            if ($note->archive == 1) {
+                $note->archive = 0;
+                $note->save();
+
+                Log::info('notes UnArchived', ['user_id' => $user, 'note_id' => $request->id]);
+                return response()->json([
+                    'status' => 20,
+                    'message' => 'Note UnArchived Sucessfully'
+                ]);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status' => 20,
-                'message' => 'Note UnArchived Sucessfully'
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
-     /**
+    /**
      * @OA\Get(
      *   path="/api/getAllArchivedNotes",
      *   summary="Display All Archived Notes",
@@ -812,11 +879,12 @@ class NoteController extends Controller
      */
     public function getAllArchivedNotes()
     {
+        try {
             $user = JWTAuth::parseToken()->authenticate();
             if (!$user) {
                 Log::error('Invalid Authorization Token');
                 return response()->json([
-                    'status'=>401,
+                    'status' => 401,
                     'message' => 'Invalid Authorization Token'
                 ]);
             } else {
@@ -824,17 +892,21 @@ class NoteController extends Controller
                 if (!$userNotes) {
                     Log::error('Notes Not Found');
                     return response()->json([
-                        'status'=>404,
+                        'status' => 404,
                         'message' => 'Notes Not Found'
                     ]);
                 }
                 return response()->json([
-                    'status'=>200,
+                    'status' => 200,
                     'message' => 'Found All Archived Notes Successfully',
                     'notes' => $userNotes
                 ]);
             }
-        
+        } catch (FundoNotesException $exception) {
+            return response()->json([
+                'message' => $exception->message()
+            ], $exception->statusCode());
+        }
     }
 
     /**
@@ -869,67 +941,72 @@ class NoteController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
 
-   public function colourNoteById(Request $request)
+    public function colourNoteById(Request $request)
     {
-
-        $validator = Validator::make($request->all(), [
-            'id' => 'required|integer',
-            'colour' => 'required|string'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $noteObject = new Notes();
-        $user = JWTAuth::authenticate($request->token);
-        $note = $noteObject->noteId($request->id);
-
-
-        if (!$note) {
-            Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id]);
-            return response()->json([
-                'status' => 404,
-                'message' => 'Notes not Found'
-            ], 404);
-        }
-
-        $colours  =  array(
-            'green' => 'rgb(0,255,0)',
-            'red' => 'rgb(255,0,0)',
-            'blue' => 'rgb(0,0,255)',
-            'yellow' => 'rgb(255,255,0)',
-            'grey' => 'rgb(128,128,128)',
-            'purple' => 'rgb(128,0,128)',
-            'brown' => 'rgb(165,42,42)',
-            'orange' => 'rgb(255,165,0)',
-            'pink' => 'rgb(255,192,203)',
-            'black' => 'rgb(0,0,0)',
-            'silver' => 'rgb(192,192,192)',
-            'teal' => 'rgb(0,128,128)',
-            'white' => 'rgb(255,255,255)',
-        );
-
-        $colour_name = strtolower($request->colour);
-
-        if (isset($colours[$colour_name])) {
-            $note->colour = $colours[$colour_name];
-            $note->save();
-
-            Log::info('notes coloured', ['user_id' => $user, 'note_id' => $request->id]);
-            return response()->json([
-                'status' => 20,
-                'message' => 'Note coloured Sucessfully'
+        try {
+            $validator = Validator::make($request->all(), [
+                'id' => 'required|integer',
+                'colour' => 'required|string'
             ]);
-        } else {
+
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
+            }
+
+            $noteObject = new Notes();
+            $user = JWTAuth::authenticate($request->token);
+            $note = $noteObject->noteId($request->id);
+
+
+            if (!$note) {
+                Log::error('Notes Not Found', ['user' => $user, 'id' => $request->id]);
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Notes not Found'
+                ], 404);
+            }
+
+            $colours  =  array(
+                'green' => 'rgb(0,255,0)',
+                'red' => 'rgb(255,0,0)',
+                'blue' => 'rgb(0,0,255)',
+                'yellow' => 'rgb(255,255,0)',
+                'grey' => 'rgb(128,128,128)',
+                'purple' => 'rgb(128,0,128)',
+                'brown' => 'rgb(165,42,42)',
+                'orange' => 'rgb(255,165,0)',
+                'pink' => 'rgb(255,192,203)',
+                'black' => 'rgb(0,0,0)',
+                'silver' => 'rgb(192,192,192)',
+                'teal' => 'rgb(0,128,128)',
+                'white' => 'rgb(255,255,255)',
+            );
+
+            $colour_name = strtolower($request->colour);
+
+            if (isset($colours[$colour_name])) {
+                $note->colour = $colours[$colour_name];
+                $note->save();
+
+                Log::info('notes coloured', ['user_id' => $user, 'note_id' => $request->id]);
+                return response()->json([
+                    'status' => 20,
+                    'message' => 'Note coloured Sucessfully'
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'Colour Not Specified in the List'
+                ], 400);
+            }
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status' => 400,
-                'message' => 'Colour Not Specified in the List'
-            ], 400);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
     }
 
-    
+
     /** * @OA\Get(
      *   path="/api/paginationNote",
      *   summary="Pagination",
@@ -943,14 +1020,14 @@ class NoteController extends Controller
      * 
      * @return \Illuminate\Http\JsonResponse
      */
-    public function paginationNote()
-    {
-        $allNotes = Notes::paginate(4);
-        return response()->json([
-            'status'=>200,
-            'message' => 'Pagination aplied to all Notes',
-            'notes' =>  $allNotes,
-        ]);
-    }
+    // public function paginationNote()
+    // {
+    //     $allNotes = Notes::paginate(4);
+    //     return response()->json([
+    //         'status'=>200,
+    //         'message' => 'Pagination aplied to all Notes',
+    //         'notes' =>  $allNotes,
+    //     ]);
+    // }
 
 }
