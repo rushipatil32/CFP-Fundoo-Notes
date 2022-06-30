@@ -6,28 +6,28 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
-class UserTest extends TestCase
+class UserControllerTest extends TestCase
 {
-    /**
-     * Successfull Registration
-     * This test is to check user Registered Successfully or not
-     * by using firstname, lastname, email and password as credentials
-     * 
+     /**
+     * Successfull registration
+     * This test is for to see if user is getting Register Successfully
+     *
      * @test
      */
-    public function test_successfull_register()
+    public function test_Successfull_Registration()
     {
         $response = $this->withHeaders([
             'Content-Type' => 'Application/json',
         ])
             ->json('POST', '/api/register', [
-                "firstname" => "Deven",
-                "lastname" => "Mali",
-                "email" => "@gmail.com",
+                "firstname" => "Lalit",
+                "lastname" => "Patil",
+                "email" => "lalitpatil@gmail.com",
                 "password" => "pass@123",
                 "password_confirmation" => "pass@123"
             ]);
-        $response->assertStatus(201)->assertJson(['message' => 'User successfully registered']);
+
+        $response->assertStatus(200)->assertJson(['message' => 'User successfully registered']);
     }
 
     /**
@@ -46,10 +46,10 @@ class UserTest extends TestCase
                 "firstname" => "Rushikesh",
                 "lastname" => "Patil",
                 "email" => "rushipatil6632@gmail.com",
-                "password" => "rushi@123",
-                "password_confirmation" => "rushi@123"
+                "password" => "pass@123",
+                "password_confirmation" => "pass@123"
             ]);
-        $response->assertStatus(401)->assertJson(['message' => 'The email has already taken.']);
+        $response->assertStatus(200)->assertJson(['message' => 'The email has already been taken']);
     }
 
      /**

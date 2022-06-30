@@ -84,6 +84,9 @@ class Notes extends Model implements JWTSubject
 
         return $notes;
     }
+
+
+
     /**
      * Function to get the Archived Notes
      * Passing the user as a parameter

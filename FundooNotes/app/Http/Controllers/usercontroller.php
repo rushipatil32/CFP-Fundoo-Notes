@@ -6,20 +6,20 @@ use App\Exceptions\FundoNotesException;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;;
-
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use App\Notifications\PasswordResetRequest;
-use Symfony\Component\HttpFoundation\Response;
-use Mail;
+
 
 class usercontroller extends Controller
 {
     /**
      * @OA\Post(
-     *   path="/api/register",
+     *   path="/api/auth/register",
      *   summary="register",
      *   description="register the user for login",
      *   @OA\RequestBody(
@@ -38,6 +38,7 @@ class usercontroller extends Controller
      *        ),
      *    ),
      *   @OA\Response(response=200, description="User successfully registered"),
+     *   @OA\Response(response=401, description="The email has already been taken"),
      * )
      * It takes a POST request and required fields for the user to register
      * and validates them if it validated, creates those field including 
@@ -45,42 +46,40 @@ class usercontroller extends Controller
      *
      *@return \Illuminate\Http\JsonResponse
      */
-
-    function register(Request $request)
+    public function register(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'firstname' => 'required|string|between:2,100',
+            'lastname' => 'required|string|between:2,100',
+            'email' => 'required|string|email|max:100',
+            'password' => 'required|string|confirmed|min:6',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors()->toJson(), 400);
+        }
+
         try {
-            $validator = Validator::make($request->all(), [
-                'firstname' => 'required|string|between:2,100',
-                'lastname' => 'required|string|between:2,100',
-                'email' => 'required|string|email|max:150',
-                'password' => 'required|string|min:6',
-                'password_confirmation' => 'required|same:password',
-            ]);
-            if ($validator->fails()) {
-                return response()->json($validator->errors()->tojson(), 400);
+            $user = User::where('email', $request->email)->first();
+            if ($user) {
+                throw new FundoNotesException("The email has already been taken", 401);
             }
-            
 
             $user = User::create([
                 'firstname' => $request->firstname,
                 'lastname' => $request->lastname,
                 'email' => $request->email,
-                'password' => bcrypt($request->password)
+                'password' => bcrypt($request->password),
             ]);
-            if ($user) {
-                Log::info('The email has already taken: ' . $user->email);
-                throw new FundoNotesException('The email has already taken.', 401);
-            }
+            Cache::remember('users', 3600, function () {
+                return DB::table('users')->get();
+            });
+        } catch (FundoNotesException $e) {
 
-            return response()->json([
-                'message' => 'User successfully registered',
-                'user' => $user
-            ], 201);
-        } catch (FundoNotesException $exception) {
-            return response()->json([
-                'message' => $exception->message()
-            ], $exception->statusCode());
+            return response()->json(['message' => $e->message(), 'status' => $e->statusCode()]);
         }
+        return response()->json([
+            'message' => 'User successfully registered',
+        ], 401);
     }
 
     /**
@@ -301,15 +300,15 @@ class usercontroller extends Controller
                 //     // $message->attach('$token');
                 //     $message->from('rushipatil6632@gmail.com', 'Rushikesh Patil');
                 // });
-                $delay = now()->addSeconds(600);
+                $delay = now()->addSeconds(300);
                 $user->notify((new PasswordResetRequest($user->email, $token))->delay($delay));
-
+                }
                 Log::info('Reset Password Token Sent to your Email');
                 return response()->json([
                     'status' => 200,
                     'message' => 'Password Reset link is send to your email'
                 ]);
-            }
+            
         } catch (FundoNotesException $exception) {
             return response()->json([
                 'message' => $exception->message()

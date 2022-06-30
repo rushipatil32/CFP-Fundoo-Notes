@@ -620,7 +620,8 @@ class NoteController extends Controller
             ], $exception->statusCode());
         }
     }
-    /**
+        
+        /**
      * @OA\Get(
      *   path="/api/getAllPinnedNotes",
      *   summary="Display All Pinned Notes",
@@ -655,7 +656,7 @@ class NoteController extends Controller
                     Log::error('Notes Not Found');
                     throw new FundoNotesException('Notes Not Found', 404);
                 }
-                Cache::remember('notes');
+                // Cache::remember('notes');
                 return response()->json([
                     'status' => 200,
                     'message' => 'Found All Pinned Notes Successfully',
@@ -668,6 +669,8 @@ class NoteController extends Controller
             ], $exception->statusCode());
         }
     }
+
+
 
     /**
      * @OA\Post(
