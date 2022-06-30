@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PasswordResetRequest extends Notification
+class PasswordResetRequest extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -22,7 +22,6 @@ class PasswordResetRequest extends Notification
     {
         $this->token = $token;
         $this->user = $email;
-
     }
 
     /**
@@ -44,11 +43,12 @@ class PasswordResetRequest extends Notification
      */
     public function toMail($notifiable)
     {
-        // $url = "/api/auth/resetpassword".$this->token;
+        $url = "/api/resetPassword/" . $this->token;
         return (new MailMessage)
-                    ->line('You have receive this email for reset password token =' . $this->token)
-                    ->action('Password Reset Request', url(''))
-                    ->line('Thank you for using our application!');
+            ->line('You are receiving this email, as a request for reset password')
+            ->action('Reset Password', url($url))
+            ->line('Link is valid for next 12 hours')
+            ->line("ignore this mail, if you are not interested.");
     }
 
     /**

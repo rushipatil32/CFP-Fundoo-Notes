@@ -59,6 +59,7 @@ class usercontroller extends Controller
             if ($validator->fails()) {
                 return response()->json($validator->errors()->tojson(), 400);
             }
+            
 
             $user = User::create([
                 'firstname' => $request->firstname,
@@ -66,11 +67,15 @@ class usercontroller extends Controller
                 'email' => $request->email,
                 'password' => bcrypt($request->password)
             ]);
+            if ($user) {
+                Log::info('The email has already taken: ' . $user->email);
+                throw new FundoNotesException('The email has already taken.', 401);
+            }
 
             return response()->json([
                 'message' => 'User successfully registered',
                 'user' => $user
-            ], 200);
+            ], 201);
         } catch (FundoNotesException $exception) {
             return response()->json([
                 'message' => $exception->message()
@@ -197,7 +202,7 @@ class usercontroller extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'User has been logged out'
-            ]);
+            ],200);
         }
     }
 
@@ -290,12 +295,14 @@ class usercontroller extends Controller
             $token = JWTAuth::fromUser($user);
 
             if ($user) {
-                $data = array('name' => "Rushikesh Patil", "resetlink" => $token);
-                Mail::send('mail', $data, function ($message) {
-                    $message->to('rushipatil6632@gmail.com', 'abc')->subject('Reset Password');
-                    // $message->attach('$token');
-                    $message->from('rushipatil6632@gmail.com', 'Rushikesh Patil');
-                });
+                // $data = array('name' => "Rushikesh Patil", "resetlink" => $token);
+                // Mail::send('mail', $data, function ($message) {
+                //     $message->to('rushipatil6632@gmail.com', 'abc')->subject('Reset Password');
+                //     // $message->attach('$token');
+                //     $message->from('rushipatil6632@gmail.com', 'Rushikesh Patil');
+                // });
+                $delay = now()->addSeconds(600);
+                $user->notify((new PasswordResetRequest($user->email, $token))->delay($delay));
 
                 Log::info('Reset Password Token Sent to your Email');
                 return response()->json([

@@ -96,4 +96,28 @@ class Notes extends Model implements JWTSubject
 
         return $notes;
     }
+
+    /**
+     * Function to get a searched Note 
+     * Passing the Current User Data and Search Key as parameters
+     * 
+     * @return array
+     */
+    public static function getSearchedNote($searchKey, $currentUser){
+        $usernotes = Notes::leftJoin('collaborators', 'collaborators.note_id', '=', 'notes.id')
+        ->leftJoin('label_notes', 'label_notes.note_id', '=', 'notes.id')
+        ->leftJoin('labels', 'labels.id', '=', 'label_notes.label_id')
+        ->select('notes.id', 'notes.title', 'notes.description', 'notes.pin', 'notes.archive', 'notes.colour', 'collaborators.email as Collaborator', 'labels.labelname')
+        ->where('notes.user_id', '=', $currentUser->id)->Where('notes.title', 'like', '%' . $searchKey . '%')
+        ->orWhere('notes.user_id', '=', $currentUser->id)->Where('notes.description', 'like', '%' . $searchKey . '%')
+        ->orWhere('notes.user_id', '=', $currentUser->id)->Where('labels.labelname', 'like', '%' . $searchKey . '%')
+        ->orWhere('collaborators.email', '=', $currentUser->email)->Where('notes.title', 'like', '%' . $searchKey . '%')
+        ->orWhere('collaborators.email', '=', $currentUser->email)->Where('notes.description', 'like', '%' . $searchKey . '%')
+        ->orWhere('collaborators.email', '=', $currentUser->email)->Where('labels.labelname', 'like', '%' . $searchKey . '%')
+        ->get();
+
+        return $usernotes;
+    }
+
+
 }

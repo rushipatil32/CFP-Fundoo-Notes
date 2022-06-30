@@ -83,7 +83,7 @@
                                     "updated_title": {
                                         "type": "string"
                                     },
-                                    "updated_descrition": {
+                                    "updated_description": {
                                         "type": "string"
                                     }
                                 },
@@ -891,17 +891,47 @@
                 ]
             }
         },
-        "/api/paginationNote": {
-            "get": {
-                "summary": "Pagination",
-                "description": "Pagination of Notes",
-                "operationId": "755fc91f8ac78cd7913b1bad409bb71c",
-                "requestBody": {},
+        "/api/searchNotes": {
+            "post": {
+                "summary": "Search Note",
+                "description": " Search Note ",
+                "operationId": "0af3875fb0e9e0a7865d06f95d9dc2e7",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "search"
+                                ],
+                                "properties": {
+                                    "search": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "Pagination Applied to all Notes"
+                        "description": "Note Fetched Sucessfully"
+                    },
+                    "404": {
+                        "description": "Notes Not Found"
+                    },
+                    "401": {
+                        "description": "Invalid Authorization Token"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
             }
         },
         "/api/register": {

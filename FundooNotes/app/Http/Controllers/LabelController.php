@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Labels;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Exceptions\FundoNotesException;
 
@@ -54,6 +55,8 @@ class LabelController extends Controller
             }
             $user = JWTAuth::authenticate($request->token);
             $user_id = $user->id;
+            
+            
 
             if (!$user) {
                 Log::error('Invalid Authorization Token');
@@ -240,6 +243,8 @@ class LabelController extends Controller
                 'labelname' => $request->labelname,
                 'user_id' => $user->id,
             ]);
+            Cache::forget('labels');
+            Cache::forget('notes');
 
             Log::info('Label Successfully Updated');
             return response()->json([
@@ -308,6 +313,8 @@ class LabelController extends Controller
                 throw new FundoNotesException('Label Not Found', 404);
             } else {
                 $label->delete($label->id);
+                Cache::forget('labels');
+                Cache::forget('notes');
                 Log::info('Label Successfully Deleted');
                 return response()->json([
                     'status' => 200,

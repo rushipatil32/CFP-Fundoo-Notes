@@ -49,6 +49,7 @@ Route::post('unarchiveNoteById',[NoteController::class,'unarchiveNoteById']);
 Route::post('colourNoteById', [NoteController::class, 'colourNoteById']);
 Route::get('getAllPinnedNotes', [NoteController::class, 'getAllPinnedNotes']);
 Route::get('getAllArchivedNotes', [NoteController::class, 'getAllArchivedNotes']);
+Route::post('searchNotes', [NoteController::class, 'searchNotes']);
 
 
 Route::post('createLabel', [LabelController::class, 'createLabel']);
