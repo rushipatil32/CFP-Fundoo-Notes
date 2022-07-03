@@ -7,6 +7,7 @@ use App\Models\Labels;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Exceptions\FundoNotesException;
 
@@ -55,9 +56,10 @@ class LabelController extends Controller
             }
             $user = JWTAuth::authenticate($request->token);
             $user_id = $user->id;
+            Cache::remember('labels', 3600, function () {
+                return DB::table('labels')->get();
+            });
             
-            
-
             if (!$user) {
                 Log::error('Invalid Authorization Token');
                 throw new FundoNotesException('Invalid Authorization Token', 401);

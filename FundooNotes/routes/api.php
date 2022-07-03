@@ -36,7 +36,7 @@ Route::get('get_user', [usercontroller::class, 'get_user']);
 Route::post('resetPassword', [usercontroller::class, 'resetPassword']);
 
 Route::post('createNote', [NoteController::class, 'createNote']);
-Route::get('readNote', [NoteController::class, 'readNote']);
+Route::get('readAllNotes', [NoteController::class, 'readAllNotes']);
 Route::post('readNoteById', [NoteController::class, 'readNoteById']);
 Route::post('updateNoteById', [NoteController::class, 'updateNoteById']);
 Route::post('deleteNoteById', [NoteController::class, 'deleteNoteById']);

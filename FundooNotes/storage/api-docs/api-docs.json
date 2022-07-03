@@ -385,11 +385,11 @@
                 ]
             }
         },
-        "/api/readNote": {
+        "/api/readAllNotes": {
             "get": {
                 "summary": "Read Note",
                 "description": "Read Note",
-                "operationId": "8f8ceb49a2b49aa499c7e7579f1bfd4e",
+                "operationId": "4a053364f4d631f37e7516897d29bbb2",
                 "responses": {
                     "200": {
                         "description": "Notes found successfully"
@@ -934,11 +934,11 @@
                 ]
             }
         },
-        "/api/register": {
+        "/api/auth/register": {
             "post": {
                 "summary": "register",
                 "description": "register the user for login",
-                "operationId": "137ea843e3b34fbd648b56ee2a29572d",
+                "operationId": "60490aa444f8230038a97bdc866437dd",
                 "requestBody": {
                     "content": {
                         "multipart/form-data": {
@@ -978,6 +978,9 @@
                 "responses": {
                     "200": {
                         "description": "User successfully registered"
+                    },
+                    "401": {
+                        "description": "The email has already been taken"
                     }
                 }
             }

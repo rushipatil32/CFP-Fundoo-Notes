@@ -10,6 +10,7 @@ use App\Models\LabelNotes;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class NoteController extends Controller
@@ -73,6 +74,10 @@ class NoteController extends Controller
                     'note' => $note
                 ],200);
             }
+            Cache::remember('notes', 3600, function () {
+                return DB::table('notes')->get();
+            });
+
         } catch (FundoNotesException $exception) {
             return response()->json([
                 'message' => $exception->message()
@@ -82,7 +87,7 @@ class NoteController extends Controller
 
     /**
      * @OA\Get(
-     *      path="/api/readNote",
+     *      path="/api/readAllNotes",
      *      summary="Read Note",
      *      description="Read Note",
      * 
@@ -97,25 +102,28 @@ class NoteController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
 
-    public function readNote(Request $request)
+
+    function readAllNotes(Request $request)
     {
         try {
+
             $user = JWTAuth::authenticate($request->token);
 
             if (!$user) {
-                Log::error('Invalid User');
-                throw new FundoNotesException('Invalid Authorization Token', 401);
+                return response()->json([
+                    'message' => 'Invalid Authorization Token',
+                ], 401);
             }
-            $note = Notes::where('user_id', $user->id)->get();
+            $note = Notes::getAllNotes($user);
 
             if (!$note) {
-                throw new FundoNotesException('Notes Not Found', 404);
+                return response()->json([
+                    'message' => 'No note created by this user',
+                ], 401);
             } else {
                 return response()->json([
-                    'status' => 200,
-                    'message'=>'Notes Found Successfully',
-                    'note' => $note
-                ]);
+                    'notes' => $note,
+                ], 200);
             }
         } catch (FundoNotesException $exception) {
             return response()->json([
@@ -168,6 +176,9 @@ class NoteController extends Controller
             if (!$user) {
                 throw new FundoNotesException('Invalid Authorization Token', 401);
             }
+            Cache::remember('notes', 3600, function () {
+                return DB::table('notes')->get();
+            });
 
             $userid = $user->id;
             $note = Notes::where('user_id', $userid)->where('id', $request->id)->first();
@@ -175,10 +186,9 @@ class NoteController extends Controller
             if (!$note) {
                 throw new FundoNotesException('Notes Not Found', 404);
             } else {
-                $pagination = Notes::paginate(4);
                 return response()->json([
                     'status' => 200,
-                    'note' => $pagination,
+                    'note' => $note,
                     'messege' => 'All notes found successfully'
                 ]);
             }
@@ -233,6 +243,9 @@ class NoteController extends Controller
             }
 
             $user = JWTAuth::authenticate($request->token);
+            Cache::remember('notes', 3600, function () {
+                return DB::table('notes')->get();
+            });
 
             if (!$user) {
                 Log::channel('customLog')->error('Invalid User');
@@ -305,6 +318,9 @@ class NoteController extends Controller
             }
 
             $user = JWTAuth::authenticate($request->token);
+            Cache::remember('notes', 3600, function () {
+                return DB::table('notes')->get();
+            });
 
             if (!$user) {
                 Log::channel('customLog')->error('Invalid User');
@@ -319,7 +335,6 @@ class NoteController extends Controller
             } else {
                 $note->delete($note->id);
                 Log::channel('customLog')->info('notes deleted', ['user_id' => $user->id, 'note_id' => $request->id]);
-                Cache::forget('notes');
                 return response()->json([
                     'status' => 201,
                     'mesaage' => 'Note Successfully deleted',
@@ -398,7 +413,6 @@ class NoteController extends Controller
 
                     $notelabel = LabelNotes::createNoteLabel($request, $user->id);
                     log::info('Label created Successfully');
-                    Cache::forget('notes');
                     return response()->json([
                         'status' => 200,
                         'message' => 'Label and note added Successfully',
@@ -471,7 +485,6 @@ class NoteController extends Controller
             }
             $labelnote->delete($labelnote->id);
             log::info('label and note deleted successfully');
-            Cache::forget('notes');
             return response()->json([
                 'status' => 200,
                 'message' => 'label Note deleted Successfully',
@@ -541,7 +554,6 @@ class NoteController extends Controller
                 $note->save();
 
                 log::info('Note pinned successfully');
-                Cache::forget('notes');
                 return response()->json([
                     'status' => 200,
                     'message' => 'Note pinned Successfully',
@@ -608,7 +620,6 @@ class NoteController extends Controller
                 $note->save();
 
                 Log::info('note unpin', ['user_id' => $user, 'note_id' => $request->id]);
-                Cache::forget('notes');
                 return response()->json([
                     'status' => 200,
                     'message' => 'Note Unpinned Sucessfully'
@@ -656,7 +667,6 @@ class NoteController extends Controller
                     Log::error('Notes Not Found');
                     throw new FundoNotesException('Notes Not Found', 404);
                 }
-                // Cache::remember('notes');
                 return response()->json([
                     'status' => 200,
                     'message' => 'Found All Pinned Notes Successfully',
@@ -730,7 +740,6 @@ class NoteController extends Controller
                 $note->save();
 
                 Log::info('notes Archived', ['user_id' => $user, 'note_id' => $request->id]);
-                Cache::forget('notes');
                 return response()->json([
                     'status' => 200,
                     'message' => 'Note Archived Sucessfully'
@@ -797,7 +806,6 @@ class NoteController extends Controller
                 $note->save();
 
                 Log::info('notes UnArchived', ['user_id' => $user, 'note_id' => $request->id]);
-                Cache::forget('notes');
                 return response()->json([
                     'status' => 20,
                     'message' => 'Note UnArchived Sucessfully'
@@ -838,19 +846,19 @@ class NoteController extends Controller
             $user = JWTAuth::parseToken()->authenticate();
             if (!$user) {
                 Log::error('Invalid Authorization Token');
-                throw new FundoNotesException('Notes Not Found', 404);
+                throw new FundoNotesException('Invalid Authorization Token', 401);
             } else {
-                $userNotes = Notes::getArchivedNotes($user);
+                $userNotes = Notes::getArchivedNotesandItsLabels($user);
                 if (!$userNotes) {
-                    Log::error('Notes Not Found');
+                    Log::error('Notes Not Found For User:: ' . $user->id);
                     throw new FundoNotesException('Notes Not Found', 404);
                 }
-                Cache::remember('notes');
+
+                Log::info('Fetched All Archived Notes Successfully');
                 return response()->json([
-                    'status' => 200,
-                    'message' => 'Found All Archived Notes Successfully',
+                    'message' => 'Fetched All Archived Notes Successfully',
                     'notes' => $userNotes
-                ]);
+                ], 200);
             }
         } catch (FundoNotesException $exception) {
             return response()->json([
@@ -939,7 +947,6 @@ class NoteController extends Controller
                 $note->save();
 
                 Log::info('notes coloured', ['user_id' => $user, 'note_id' => $request->id]);
-                Cache::forget('notes');
                 return response()->json([
                     'status' => 200,
                     'message' => 'Note coloured Sucessfully'

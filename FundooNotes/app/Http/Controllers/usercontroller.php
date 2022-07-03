@@ -79,7 +79,7 @@ class usercontroller extends Controller
         }
         return response()->json([
             'message' => 'User successfully registered',
-        ], 401);
+        ], 200);
     }
 
     /**
@@ -120,6 +120,10 @@ class usercontroller extends Controller
         if ($validator->fails()) {
             return response()->json(['error' => 'Invalid credentials entered'], 400);
         }
+
+        Cache::remember('users', 3600, function () {
+            return DB::table('users')->get();
+        });
 
         $user = User::where('email', $request->email)->first();
 

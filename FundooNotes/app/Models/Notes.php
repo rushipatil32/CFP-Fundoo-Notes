@@ -87,18 +87,22 @@ class Notes extends Model implements JWTSubject
 
 
 
-    /**
-     * Function to get the Archived Notes
+         /**
+     * Function to get the archived notes and their labels
      * Passing the user as a parameter
      * 
      * @return array
      */
-    public static function getArchivedNotes($user)
+    public static function getArchivedNotesandItsLabels($user)
     {
-        $notes = Notes::where('user_id', $user->id)->where('archive', 1)->get();
+        $note = Notes::leftJoin('label_notes', 'label_notes.note_id', '=', 'notes.id')
+            ->leftJoin('labels', 'labels.id', '=', 'label_notes.label_id')
+            ->select('notes.id', 'notes.title', 'notes.description', 'notes.pin', 'notes.archive', 'notes.colour', 'labels.labelname')
+            ->where([['notes.user_id', '=', $user->id], ['archive', '=', 1]])->paginate(4);
 
-        return $notes;
+        return $note;
     }
+
 
     /**
      * Function to get a searched Note 
@@ -122,5 +126,17 @@ class Notes extends Model implements JWTSubject
         return $usernotes;
     }
 
+    public static function getAllNotes($user)
+    {
+        $note = Notes::leftJoin('label_notes', 'label_notes.note_id', '=', 'notes.id')
+            ->leftJoin('labels', 'labels.id', '=', 'label_notes.label_id')
+            ->leftjoin('collaborators','collaborators.user_id', '=', 'notes.user_id')
+            ->select('notes.id', 'notes.title', 'notes.description', 'notes.pin', 'notes.archive', 'notes.colour', 'labels.labelname','collaborators.email as Collaborator')
+            ->where([['notes.user_id', '=', $user->id], ['archive', '=', 0], ['pin', '=', 0]])
+            ->orWhere([['archive', '=', 0], ['pin', '=', 0],['collaborators.email', '=', $user->email]])
+            ->get();
+
+        return $note;
+    }
 
 }
