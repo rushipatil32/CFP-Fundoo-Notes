@@ -121,8 +121,10 @@ class NoteController extends Controller
                     'message' => 'No note created by this user',
                 ], 401);
             } else {
+                // $paginate = $note->paginate(3);
                 return response()->json([
                     'notes' => $note,
+                    'message'=>'Notes Found Successfully'
                 ], 200);
             }
         } catch (FundoNotesException $exception) {

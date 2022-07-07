@@ -20,11 +20,11 @@ class NoteControllerTest extends TestCase
     {
         $response = $this->withHeaders([
             'Content-Type' => 'Application/json',
-            'Authorization' => 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2xvZ2luIiwiaWF0IjoxNjU2NjEwMTE1LCJleHAiOjE2NTY2MTM3MTUsIm5iZiI6MTY1NjYxMDExNSwianRpIjoiUWRkSWdLb0tiU0NWVHE1TCIsInN1YiI6IjkiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.3wE6_UZjD-viBDeGXjnboPdnOuqvS1lRjYJTvJ4R27s'
+            'Authorization' => 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2xvZ2luIiwiaWF0IjoxNjU2OTIwNjU2LCJleHAiOjE2NTY5MjQyNTYsIm5iZiI6MTY1NjkyMDY1NiwianRpIjoiS2Rxb3k5Nkk0YkZscTc1TSIsInN1YiI6IjYiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.05JTJ_TTJa9GZjV2Waye23WLno0FiuYhczmZztC48o0'
         ])->json('POST', '/api/createNote',
         [
-            "title" => "Keyboard-1",
-            "description" => "working too good",
+            "title" => "AC",
+            "description" => "Havells",
         ]);
 
         $response->assertStatus(200)->assertJson(['message' => 'Note successfully created']);
@@ -62,8 +62,8 @@ class NoteControllerTest extends TestCase
      {
          $response = $this->withHeaders([
              'Content-Type' => 'Application/json',
-             'Authorization' => 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2xvZ2luIiwiaWF0IjoxNjU2NjA1MDM0LCJleHAiOjE2NTY2MDg2MzQsIm5iZiI6MTY1NjYwNTAzNCwianRpIjoiS3NtVGxtNXBYUXpleWlvaCIsInN1YiI6IjkiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.cRZvozpSSz9iBZA2UWuJPbWZHVesOy0qhCEkG4MDNBg'
-         ])->json('GET', '/api/readnote');
+             'Authorization' => 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2xvZ2luIiwiaWF0IjoxNjU2OTIwNjU2LCJleHAiOjE2NTY5MjQyNTYsIm5iZiI6MTY1NjkyMDY1NiwianRpIjoiS2Rxb3k5Nkk0YkZscTc1TSIsInN1YiI6IjYiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.05JTJ_TTJa9GZjV2Waye23WLno0FiuYhczmZztC48o0'
+         ])->json('GET', '/api/readAllNotes');
 
          $response->assertStatus(200)->assertJson(['message' => 'Notes Found Successfully']);
      }
@@ -79,9 +79,9 @@ class NoteControllerTest extends TestCase
          $response = $this->withHeaders([
              'Content-Type' => 'Application/json',
              'Authorization' => 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2xvZ2luIiwiaWF0IjoxNjU2NjA1MDM0LCJleHAiOjE2NTY2MDg2MzQsIm5iZiI6MTY1NjYwNTAzNCwianRpIjoiS3NtVGxtNXBYUXpleWlvaCIsInN1YiI6IjkiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.cRZvozpSSz9iBZA2UWuJPbWZHVesOy0qhCEkG4MDNBg'
-         ])->json('GET', '/api/readnote');
+         ])->json('GET', '/api/readAllNotes');
 
-         $response->assertStatus(401)->assertJson(['message' => 'Invalid Authorization Token']);
+         $response->assertStatus(401)->assertJson(['message' => 'No note created by this user']);
      }
 
      /**

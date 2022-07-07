@@ -21,8 +21,8 @@ class UserControllerTest extends TestCase
         ])
             ->json('POST', '/api/register', [
                 "firstname" => "Lalit",
-                "lastname" => "Patil",
-                "email" => "lalitpatil@gmail.com",
+                "lastname" => "Sonar",
+                "email" => "lali1997@gmail.com",
                 "password" => "pass@123",
                 "password_confirmation" => "pass@123"
             ]);
@@ -102,7 +102,7 @@ class UserControllerTest extends TestCase
             $response = $this->withHeaders([
                 'Content-Type' => 'Application/json',
             ])->json('POST', '/api/logout', [
-                "token" => 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOlwvXC9sb2NhbGhvc3Q6ODAwMFwvYXBpXC9sb2dpbiIsImlhdCI6MTY0OTkyNTI2MCwiZXhwIjoxNjQ5OTI4ODYwLCJuYmYiOjE2NDk5MjUyNjAsImp0aSI6InI2VklQYlJkWXRscFFjU2EiLCJzdWIiOjQsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjcifQ.pd5x0pBsl9vdZaKPl2QMh_9WKRPNv2r5sFDjAgW5VTE'
+                "token" => 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2xvZ2luIiwiaWF0IjoxNjU2OTIwMzMyLCJleHAiOjE2NTY5MjM5MzIsIm5iZiI6MTY1NjkyMDMzMiwianRpIjoiaWJDek9TY1haOHh4TVlZVSIsInN1YiI6IjYiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3In0.pzPhDaM15i4915iGkNL5V3KNhEoX1B1XZknhRnOtXhI'
             ]);
 
             $response->assertStatus(200)->assertJson(['message' => 'User has been logged out']);

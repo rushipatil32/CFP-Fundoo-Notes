@@ -19,7 +19,7 @@ class usercontroller extends Controller
 {
     /**
      * @OA\Post(
-     *   path="/api/auth/register",
+     *   path="/api/register",
      *   summary="register",
      *   description="register the user for login",
      *   @OA\RequestBody(
@@ -304,7 +304,7 @@ class usercontroller extends Controller
                 //     // $message->attach('$token');
                 //     $message->from('rushipatil6632@gmail.com', 'Rushikesh Patil');
                 // });
-                $delay = now()->addSeconds(300);
+                $delay = now()->addSeconds(600);
                 $user->notify((new PasswordResetRequest($user->email, $token))->delay($delay));
                 }
                 Log::info('Reset Password Token Sent to your Email');

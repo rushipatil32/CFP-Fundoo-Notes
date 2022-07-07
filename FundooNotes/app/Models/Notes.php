@@ -80,7 +80,7 @@ class Notes extends Model implements JWTSubject
      */
     public static function getPinnedNotes($user)
     {
-        $notes = Notes::where('user_id', $user->id)->where('pin',1)->get();
+        $notes = Notes::where('user_id', $user->id)->where('pin',1)->get()->paginate(4);
 
         return $notes;
     }
@@ -110,17 +110,17 @@ class Notes extends Model implements JWTSubject
      * 
      * @return array
      */
-    public static function getSearchedNote($searchKey, $currentUser){
+    public static function getSearchedNote($searchKey, $user){
         $usernotes = Notes::leftJoin('collaborators', 'collaborators.note_id', '=', 'notes.id')
         ->leftJoin('label_notes', 'label_notes.note_id', '=', 'notes.id')
         ->leftJoin('labels', 'labels.id', '=', 'label_notes.label_id')
         ->select('notes.id', 'notes.title', 'notes.description', 'notes.pin', 'notes.archive', 'notes.colour', 'collaborators.email as Collaborator', 'labels.labelname')
-        ->where('notes.user_id', '=', $currentUser->id)->Where('notes.title', 'like', '%' . $searchKey . '%')
-        ->orWhere('notes.user_id', '=', $currentUser->id)->Where('notes.description', 'like', '%' . $searchKey . '%')
-        ->orWhere('notes.user_id', '=', $currentUser->id)->Where('labels.labelname', 'like', '%' . $searchKey . '%')
-        ->orWhere('collaborators.email', '=', $currentUser->email)->Where('notes.title', 'like', '%' . $searchKey . '%')
-        ->orWhere('collaborators.email', '=', $currentUser->email)->Where('notes.description', 'like', '%' . $searchKey . '%')
-        ->orWhere('collaborators.email', '=', $currentUser->email)->Where('labels.labelname', 'like', '%' . $searchKey . '%')
+        ->where('notes.user_id', '=', $user->id)->Where('notes.title', 'like', '%' . $searchKey . '%')
+        ->orWhere('notes.user_id', '=', $user->id)->Where('notes.description', 'like', '%' . $searchKey . '%')
+        ->orWhere('notes.user_id', '=', $user->id)->Where('labels.labelname', 'like', '%' . $searchKey . '%')
+        ->orWhere('collaborators.email', '=', $user->email)->Where('notes.title', 'like', '%' . $searchKey . '%')
+        ->orWhere('collaborators.email', '=', $user->email)->Where('notes.description', 'like', '%' . $searchKey . '%')
+        ->orWhere('collaborators.email', '=', $user->email)->Where('labels.labelname', 'like', '%' . $searchKey . '%')
         ->get();
 
         return $usernotes;
@@ -128,13 +128,14 @@ class Notes extends Model implements JWTSubject
 
     public static function getAllNotes($user)
     {
-        $note = Notes::leftJoin('label_notes', 'label_notes.note_id', '=', 'notes.id')
+        $note = User::leftjoin('notes','notes.user_id','=','users.id')
+            ->leftJoin('label_notes', 'label_notes.note_id', '=', 'notes.id')
             ->leftJoin('labels', 'labels.id', '=', 'label_notes.label_id')
-            ->leftjoin('collaborators','collaborators.user_id', '=', 'notes.user_id')
-            ->select('notes.id', 'notes.title', 'notes.description', 'notes.pin', 'notes.archive', 'notes.colour', 'labels.labelname','collaborators.email as Collaborator')
+            ->leftjoin('collaborators','collaborators.note_id', '=', 'notes.id')
+            ->select('users.id','notes.id', 'notes.title', 'notes.description', 'notes.pin', 'notes.archive', 'notes.colour', 'labels.labelname','collaborators.email as Collaborator')
             ->where([['notes.user_id', '=', $user->id], ['archive', '=', 0], ['pin', '=', 0]])
-            ->orWhere([['archive', '=', 0], ['pin', '=', 0],['collaborators.email', '=', $user->email]])
-            ->get();
+            ->orWhere([['archive', '=', 0], ['pin', '=', 0],['collaborators.email', '=', $user->email]])->paginate(4);
+            
 
         return $note;
     }

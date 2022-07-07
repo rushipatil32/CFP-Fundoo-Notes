@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SendEmailRequest;
+use App\Exceptions\FundoNotesException;
 use App\Models\Collaborator;
 use App\Models\Notes;
 use App\Models\User;
@@ -10,33 +11,34 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use Mail;
+use App\Notifications\mailtocollab;
+
 
 
 class CollaboratorController extends Controller
 {
-    /**
+    /**    /**
      * @OA\Post(
      *   path="/api/addCollaboratorByNoteId",
-     *   summary="Add Colaborator ",
-     *   description=" Add Colaborator a to specific Note ",
+     *   summary="Add Colaborator to a specific Note",
+     *   description="Add Colaborator a to specific Note",
      *   @OA\RequestBody(
      *         @OA\JsonContent(),
      *         @OA\MediaType(
      *            mediaType="multipart/form-data",
      *            @OA\Schema(
      *               type="object",
-     *               required={"email" , "note_id"},
+     *               required={"note_id","email"},
+     *               @OA\Property(property="note_id", type="integer"),
      *               @OA\Property(property="email", type="email"),
-     *               @OA\Property(property="note_id", type="integer")
      *            ),
      *        ),
      *    ),
-     *   @OA\Response(response=200, description="Collaborator Created Sucessfully"),
+     *   @OA\Response(response=201, description="Collaborator Created Sucessfully"),
      *   @OA\Response(response=202, description="Collab Not Added"),
      *   @OA\Response(response=401, description="Invalid Authorization Token"),
      *   @OA\Response(response=404, description="Not a Registered Email"),
-     *   @OA\Response(response=403, description="Collaborator Already Created"),
+     *   @OA\Response(response=409, description="Collaborator Already Created"),
      *   security = {
      *      {"Bearer" : {}}
      *   }
@@ -51,75 +53,70 @@ class CollaboratorController extends Controller
      */
     function addCollaboratorByNoteId(Request $request)
     {
+        try {
 
-        $validator = Validator::make($request->all(), [
-            'note_id' => 'required|integer',
-            'email' => 'required|email'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $user = JWTAuth::authenticate($request->token);
-        if(!$user){
-            Log::error('Invalid Authorisation Token');
-            return response()->json([
-                'status'=>401,
-                'message' => 'Invalid Authorisation token',
+            $validator = Validator::make($request->all(), [
+                'note_id' => 'required|integer',
+                'email' => 'required|email',
             ]);
-        }
 
-        $regMail = User::where('email',$request->email)->first();
-        if(!$regMail){
-            Log::warning('Email is not registered');
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
+            }
+
+            $currentUser = JWTAuth::authenticate($request->token);
+
+            if (!$currentUser) {
+                Log::error('Invalid Authorization Token');
+                throw new FundoNotesException('Invalid Authorization Token', 401);
+            }
+
+            $regMail = User::where('email', $request->email)->first();
+            if (!$regMail) {
+                Log::info('Email to be Collaborate with is not Registered');
+                throw new FundoNotesException('Email to be Collaborate with is not Registered', 404);
+            }
+
+            $note = Notes::where('id', $request->note_id)->where('user_id', $currentUser->id)->first();
+            if (!$note) {
+                Log::error('Notes Not Found For User:: ' . $currentUser->id);
+                throw new FundoNotesException('Notes Not Found', 404);
+            }
+
+            $collab = Collaborator::where('email', $request->email)->where('note_id', $request->note_id)->first();
+            if ($collab) {
+                Log::info('Collaborator Already Created');
+                throw new FundoNotesException('Collaborator Already Created', 409);
+            }
+
+            $collab = new Collaborator();
+            $collab->note_id = $request->get('note_id');
+            $collab->email = $request->get('email');
+            $collaborator = Notes::select('id', 'title', 'description')->where('id', $request->note_id)->first();
+            $collab->user_id = $currentUser->id;
+            $collab->save();
+
+            $userTo = User::where('email', $request->email)->first();
+
+            // Mail::send('collabmail', $collabNote, function ($message) use ($sendTo, $sendName) {
+            //     $message->to($sendTo, $sendName)->subject('Sharing Note');
+            //     $message->from(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
+            // });
+
+            $delay = now()->addSeconds(300);
+            $userTo->notify((new MailTocollab($currentUser->email, $collaborator))->delay($delay));
+
+            Log::info('Collaborator created Sucessfully');
             return response()->json([
-                'status'=>400,
-                'message' => 'Email is not registered',
-            ]);
-        }
-        $note = Notes::where('id',$request->note_id)->where('user_id',$user->id)->first();
-        Log::error('No note found for this user');
-        if(!$note){
+                'message' => 'Collaborator Created Sucessfully',
+            ], 201);
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'status'=>404,
-                'message' => 'No note found for this user',
-            ]);
+                'message' => $exception->message()
+            ], $exception->statusCode());
         }
-
-        $collab = Collaborator::where('email',$request->email)->where('note_id',$request->note_id)->first();
-        if($collab){
-            Log::info('Collaborator already created for this email and note');
-            return response()->json([
-                'status'=>403,
-                'message' => 'Collaborator Already created for this note and email',
-            ], 403);
-        }
-        $collaborator = Collaborator::create([
-            'status'=>200,
-            'user_id' => $user->id,
-            'note_id' => $request->note_id,
-            'email' => $request->email,
-        ]);
-
-        $collabNote = array('id'=>$note->id,'title'=>$note->title,'description'=>$note->description);
-        $sendTo = $request->email;
-        $userTo = User::where('email',$request->email)->first();
-        $sendName = $userTo->firstname;
-        
-
-        Mail::send('collabmail', $collabNote, function ($message) use ($sendTo,$sendName) {
-            $message->to($sendTo,$sendName)->subject('Sharing Note');
-            $message->from(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
-        });
-        Log::info('Collaborator created Sucessfully');
-        return response()->json([
-            'status'=>200,
-            'message' => 'Collaborator Created Sucessfully',
-            'collaborator' => $collaborator,
-        ]);
-
     }
+
 
     /**
      * @OA\Post(
@@ -139,7 +136,7 @@ class CollaboratorController extends Controller
      *            ),
      *        ),
      *    ),
-     *   @OA\Response(response=200, description="Collaborator updated Sucessfully"),
+     *   @OA\Response(response=201, description="Collaborator updated Sucessfully"),
      *   @OA\Response(response=401, description="Invalid Authorization Token"),
      *   @OA\Response(response=404, description="Not a Registered Email"),
      *   @OA\Response(response=409, description="Collaborator Already Created"),
@@ -156,55 +153,55 @@ class CollaboratorController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
 
-    function updateCollaboratorById(Request $request){
+    function updateCollaboratorById(Request $request)
+    {
+        try {
 
-        $validator = Validator::make($request->all(), [
-            'note_id' => 'required|integer',
-            'updated_title' => 'string|between:3,30',
-            'updated_description' => 'string|between:3,1000'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $user = JWTAuth::authenticate($request->token);
-        if(!$user){
-            Log::error('Invalid Authorisation Token');
-            return response()->json([
-                'staus'=>401,
-                'message' => 'Invalid Authorisation token',
+            $validator = Validator::make($request->all(), [
+                'note_id' => 'required|integer',
+                'updated_title' => 'string|between:3,30',
+                'updated_description' => 'string|between:3,1000'
             ]);
-        }
 
-        $collab = Collaborator::where('user_id',$user->id)->where('note_id',$request->note_id)->first();
-        if(!$collab){
-            Log::error('Invalid Note id');
-            return response()->json([
-                'staus'=>400,
-                'message' => 'Invalid Note id',
-            ]);
-        }
+            if ($validator->fails()) {
+                return response()->json($validator->errors()->toJson(), 400);
+            }
 
-        $collabNote = Notes::where('id',$request->note_id)->where('user_id',$collab->user_id)->first();
-        if(!$collabNote){
-            Log::error('Note not found');
-            return response()->json([
-                'staus'=>404,
-                'message' => 'Note not found',
-            ]);
-        }
+            $currentUser = JWTAuth::authenticate($request->token);
+            if (!$currentUser) {
+                Log::error('Invalid Authorization Token');
+                throw new FundoNotesException('Invalid Authorization Token', 401);
+            }
 
-        $collabNote->update([
-            'title' => $request->updated_title,
-            'description' => $request->updated_description
-        ]);
-        Log::info('Note updated Successfully');
+            $collab1 = Collaborator::where('user_id', $currentUser->id)->where('note_id', $request->note_id)->first();
+            $collab2 = Collaborator::where('email', $currentUser->email)->where('note_id', $request->note_id)->first();
+            if ($collab1 || $collab2) {
+
+                $collabNote = Notes::where('id', $request->note_id)->first();
+                if (!$collabNote) {
+                    Log::error('Notes Not Found');
+                    throw new FundoNotesException('Notes Not Found', 404);
+                }
+
+                $collabNote->update([
+                    'title' => $request->updated_title,
+                    'description' => $request->updated_description
+                ]);
+                Log::info('Note updated Successfully');
+                return response()->json([
+                    'message' => 'Note updated Successfully',
+                ], 200);
+            }
+
+            Log::error('Note Not Updated');
+            throw new FundoNotesException('Note Not Updated', 400);
+        } catch (FundoNotesException $exception) {
             return response()->json([
-                'staus'=>200,
-                'message' => 'Note updated Successfully',
-            ]);  
+                'message' => $exception->message()
+            ], $exception->statusCode());
+        }
     }
+
 
      /**
      * @OA\Post(

@@ -11,23 +11,23 @@
     "paths": {
         "/api/addCollaboratorByNoteId": {
             "post": {
-                "summary": "Add Colaborator ",
-                "description": " Add Colaborator a to specific Note ",
+                "summary": "Add Colaborator to a specific Note",
+                "description": "Add Colaborator a to specific Note",
                 "operationId": "3ca0b9d0e282a1181aa23151f6bffda9",
                 "requestBody": {
                     "content": {
                         "multipart/form-data": {
                             "schema": {
                                 "required": [
-                                    "email",
-                                    "note_id"
+                                    "note_id",
+                                    "email"
                                 ],
                                 "properties": {
-                                    "email": {
-                                        "type": "email"
-                                    },
                                     "note_id": {
                                         "type": "integer"
+                                    },
+                                    "email": {
+                                        "type": "email"
                                     }
                                 },
                                 "type": "object"
@@ -39,7 +39,7 @@
                     }
                 },
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Collaborator Created Sucessfully"
                     },
                     "202": {
@@ -51,7 +51,7 @@
                     "404": {
                         "description": "Not a Registered Email"
                     },
-                    "403": {
+                    "409": {
                         "description": "Collaborator Already Created"
                     }
                 },
@@ -96,7 +96,7 @@
                     }
                 },
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Collaborator updated Sucessfully"
                     },
                     "401": {
@@ -934,11 +934,11 @@
                 ]
             }
         },
-        "/api/auth/register": {
+        "/api/register": {
             "post": {
                 "summary": "register",
                 "description": "register the user for login",
-                "operationId": "60490aa444f8230038a97bdc866437dd",
+                "operationId": "137ea843e3b34fbd648b56ee2a29572d",
                 "requestBody": {
                     "content": {
                         "multipart/form-data": {
